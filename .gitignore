@@ -1,6 +1,8 @@
 # ignore the following files
 package-lock.json
 *.vsix
+.DS_Store
+*/.DS_Store
 
 # ignore ALL files in following directories
 node_modules/
