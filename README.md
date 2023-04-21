@@ -28,7 +28,7 @@ $ npm install .
 $ vsce package
 ```
 
-To simplify installation and updates we are planning to make vscode-netconf available on Visual Studio Code
+To simplify installation and updates we are planning to make `vscode-netconf` available on Visual Studio Code
 [Extensions Marketplace](https://marketplace.visualstudio.com/vscode) soon!
 
 ## Contributions
@@ -206,6 +206,13 @@ compatibility and extend the capabilities.
 
   Related to vscode-issue [#175986](https://github.com/microsoft/vscode/issues/175986).
 
+* Under rare conditions, NETCONF-over-SSH session death is not properly propagated.
+  SSH-level keepalive mechanism can be activated to improve session health checks.
+  If for whatever reason the underlying session died but extension state including
+  status-bar was not updated, you can execute `Developer: Reload Window` from the
+  Visual Studio command-palette. This will enforce the restart all extensions and
+  fixes the issue.
+
 ## Feature candidates
 
 We've captured the following feature candidates for future evolution:
@@ -246,6 +253,26 @@ We've captured the following feature candidates for future evolution:
   Graphical compare of running vs candidate datastores.
 
 Contributions are welcome, to help improving the usability of `vscode-netconf`.
+
+## Changes
+### Release 1.1.0
+
+- Client capabilities are now configurable in the `netconf.serverList`.
+  By default, `vscode-netconf` is sending the `base:1.0` and `base:1.1`
+  capabilities to the server. By making the capabilities configurable,
+  the desired framing mechanism can be enforced. In addition, it is
+  possible to enable device-level feature like private candidates in
+  Nokia SR OS.
+- The execution time for RPCs is now captured and shown to the user.
+  This is to get some initial idea on performance for a given
+  `edit-config` or `commit` RPC. It is targeted for integrators
+  to optimize the communication to the server and to implement
+  response time-outs.
+
+  The execution time is only shown to RPCs that return a simple
+  `</ok>` as part of the confirmation dialogue. It's not available
+  for RPCs that return detailed responses like `<get>`, `<get-config`.
+  For those cases, it is shown in the console-log only.
 
 ## License
 

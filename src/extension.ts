@@ -15,6 +15,7 @@ import xmlFormat from 'xml-formatter';
 
 interface ConnectInfo extends ssh2.ConnectConfig {
 	id: string;
+	clientCapabilities: string[];
 }
 
 function playAudio(soundFile: string) {
@@ -235,18 +236,19 @@ export function activate(context: vscode.ExtensionContext) {
 		playAudio(clickSound);
 	});
 
-	client.on('rpcOk', (msgid) => {
-		vscode.window.showInformationMessage(`netconf #${msgid}: ok`);
+	client.on('rpcOk', (msgid, elapsed) => {
+		vscode.window.showInformationMessage(`netconf #${msgid}: ok, time=${elapsed}`);
 		playAudio(successSound);
 	});
 
-	client.on('rpcResponse', (data) => {
+	client.on('rpcResponse', (msgid, data, elapsed) => {
+		console.log(`netconf #${msgid}: successful, time=${elapsed}`);
 		showXmlDocument(data);
 		playAudio(successSound);
 	});
 
-	client.on('rpcError', (errmsg, msg) => {
-		vscode.window.showWarningMessage(`NETCONF RPC failed with ${errmsg}`, 'Open', 'Cancel').then( async (action) => {
+	client.on('rpcError', (msgid, errmsg, msg, elapsed) => {
+		vscode.window.showWarningMessage(`netconf #${msgid}: failed, time=${elapsed}`, 'Open', 'Cancel').then( async (action) => {
 			if ('Open' === action) {
 				showXmlDocument(msg);
 			}
@@ -348,7 +350,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		for (const idx in servers) {
 			if (servers[idx].id === active) {
-				client.connect(servers[idx], keepAlive, keysFile, sshdebug);
+				client.connect(servers[idx], keepAlive, keysFile, servers[idx].clientCapabilities, sshdebug);
 				break;
 			}
 		}

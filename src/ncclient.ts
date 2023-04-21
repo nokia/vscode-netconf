@@ -10,31 +10,25 @@
 
 import {EventEmitter} from 'events';
 import * as ssh2 from 'ssh2';
-import {XMLParser} from 'fast-xml-parser';
+import {XMLParser, XMLBuilder} from 'fast-xml-parser';
 
 export class ncclient extends EventEmitter {
 	client: ssh2.Client;
-	netconfHello: string;
 	rawbuf: string;
 	msgbuf: string;
 	bytes: number;
 	ncs: any;
 	caplist: string[];
 	callbacks: any;
+	timestamp: any;
 	connected: boolean;
 	privkey: string | undefined;
+	clientCapabilities: string[];
+	base11Framing: boolean;
 
 	constructor () {
 		console.debug('ncclient:constructor()');
 		super();
-
-		this.netconfHello = '<?xml version="1.0" encoding="UTF-8"?>'+
-		'<hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">'+
-		'    <capabilities>'+
-		'        <capability>urn:ietf:params:netconf:base:1.0</capability>'+
-		'        <capability>urn:ietf:params:netconf:base:1.1</capability>'+
-		'    </capabilities>'+
-		'</hello>]]>]]>';
 
 		this.client = new ssh2.Client();
 		this._registerCallbacks();
@@ -46,7 +40,10 @@ export class ncclient extends EventEmitter {
 		this.ncs = undefined;
 		this.caplist = [];
 		this.callbacks = {};
+		this.timestamp = {};
 		this.privkey = undefined;
+		this.clientCapabilities = [];
+		this.base11Framing = false;
 	}
 
 	private _registerCallbacks() {
@@ -67,11 +64,12 @@ export class ncclient extends EventEmitter {
 			console.error('ssh close');
 			this.emit('disconnected');
 			this.connected = false;
-			this.caplist = [];
 			this.rawbuf = "";
 			this.msgbuf = "";
 			this.bytes = 0;
-			this.ncs = null;			
+			this.ncs = null;
+			this.caplist = [];
+			this.base11Framing = false;
 		});
 
 		this.client.on('end', () => {
@@ -95,7 +93,7 @@ export class ncclient extends EventEmitter {
 				} else {
 					console.log('netconf subsystem is ready');
 					this.ncs = stream;
-					stream.on('data', (data: any) => {this._dataHandler(data)}).write(this.netconfHello);
+					stream.on('data', (data: any) => {this._dataHandler(data)});
 				}
 			});
 		});
@@ -103,10 +101,10 @@ export class ncclient extends EventEmitter {
 
 	private _msgHandler(msg: string) {
 		const options = {
-			ignoreAttributes: false,
 			attributeNamePrefix : "@_",
-			removeNSPrefix: true,
-			ignoreNameSpace: true
+			ignoreAttributes: false,
+			ignoreNameSpace: false,
+			removeNSPrefix: true
 		};
 		const data = new XMLParser(options).parse(msg);
 
@@ -120,34 +118,76 @@ export class ncclient extends EventEmitter {
 				return this.emit('netconfError', 'unexpected <hello> message', msg);
 			} else {
 				const sessionId = data.hello['session-id'];
-				const capabilities = data.hello.capabilities.capability;
+				const serverCapabilities = data.hello.capabilities.capability;
 				this.caplist = [];
-				if (capabilities.includes('urn:ietf:params:netconf:base:1.0')) this.caplist.push('base:1.0');
-				if (capabilities.includes('urn:ietf:params:netconf:base:1.1')) this.caplist.push('base:1.1');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:candidate:1.0')) this.caplist.push('candidate');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:confirmed-commit:1.1')) this.caplist.push('confirmed-commit');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:rollback-on-error:1.0')) this.caplist.push('rollback-on-error');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:notification:1.0')) this.caplist.push('notification');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:interleave:1.0')) this.caplist.push('interleave');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:validate:1.0') ||
-					capabilities.includes('urn:ietf:params:netconf:capability:validate:1.1')) this.caplist.push('validate');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:startup:1.0')) this.caplist.push('startup');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:with-defaults:1.0')) this.caplist.push('with-defaults');
-				if (capabilities.includes('urn:ietf:params:netconf:capability:yang-library:1.1')) this.caplist.push('yang-library');
-				if (capabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring')) this.caplist.push('netconf-monitoring');
-				if (capabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-nmda?module=ietf-netconf-nmda')) this.caplist.push('netconf-nmda');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:base:1.0')) this.caplist.push('base:1.0');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:base:1.1')) this.caplist.push('base:1.1');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:candidate:1.0')) this.caplist.push('candidate');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:confirmed-commit:1.1')) this.caplist.push('confirmed-commit');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:rollback-on-error:1.0')) this.caplist.push('rollback-on-error');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:notification:1.0')) this.caplist.push('notification');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:interleave:1.0')) this.caplist.push('interleave');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:validate:1.0') ||
+					serverCapabilities.includes('urn:ietf:params:netconf:capability:validate:1.1')) this.caplist.push('validate');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:startup:1.0')) this.caplist.push('startup');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:with-defaults:1.0')) this.caplist.push('with-defaults');
+				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:yang-library:1.1')) this.caplist.push('yang-library');
+				if (serverCapabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring')) this.caplist.push('netconf-monitoring');
+				if (serverCapabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-nmda?module=ietf-netconf-nmda')) this.caplist.push('netconf-nmda');
+
+				if (this.clientCapabilities.includes('urn:ietf:params:netconf:base:1.1') && serverCapabilities.includes('urn:ietf:params:netconf:base:1.1')) {
+					console.log('[base:1.1] rfc6242 ch4.2 Chunked Framing');
+					this.base11Framing = true;
+				} else if (this.clientCapabilities.includes('urn:ietf:params:netconf:base:1.0') && serverCapabilities.includes('urn:ietf:params:netconf:base:1.0')) {
+					console.log('[base:1.0] rfc6242 ch4.3 End-of-Message Framing');
+					this.base11Framing = false;
+				} else {
+					console.error('[rfc6242] netconf-over-ssh framing incompatible')
+					this.emit('netconfError', 'NETCONF capabilities incompatible', msg);
+					return this.disconnect();
+				}
+
+				// Say hello to NETCONF server
+				const hello = {
+					"hello": {
+						"@_xmlns": "urn:ietf:params:xml:ns:netconf:base:1.0",
+						"capabilities": {
+							"capability": this.clientCapabilities
+						}
+					}
+				}
+				const netconfHello = new XMLBuilder(options).build(hello);
+				this.ncs.write(`<?xml version="1.0" encoding="UTF-8"?>\n${netconfHello}]]>]]>`);
+
 				this.connected = true;
 				return this.emit('connected', msg, this.caplist, sessionId);
 			}
 		} else if (!this.connected) {
 			// Note: we are not yet connected; first server message must be <hello>
-			return this.emit('netconfError', 'expecting <hello> message', msg);
+			this.emit('netconfError', 'expecting <hello> message', msg);
+			return this.disconnect();
 		} else if (data.notification) {
 			return this.emit('notification', msg);
 		} else if (data['rpc-reply']) {
 			let msgid = undefined;
 			if (data['rpc-reply']['@_message-id']) {
 				msgid = data['rpc-reply']['@_message-id'];
+			}
+
+			let elapsed = undefined;
+			if (msgid) {
+				if (this.timestamp[msgid]) {
+					const t = process.hrtime(this.timestamp[msgid]);
+					if (t[0]>3600)
+						elapsed = `${t[0]/3600|0}h ${(t[0]/60%60)|0}min ${t[0]%60}sec`;
+					else if (t[0]>60)
+						elapsed = `${t[0]/60|0}min ${t[0]%60}sec`;
+					else  if (t[0]>0)
+						elapsed = `${t[0]}sec ${t[1]/1000000|0}ms`;
+					else
+						elapsed = `${t[1]/1000000|0}ms`;
+					delete this.timestamp[msgid];
+				}
 			}
 
 			if ('rpc-error' in data['rpc-reply']) {
@@ -157,15 +197,15 @@ export class ncclient extends EventEmitter {
 				} else {
 					errmsg = data['rpc-reply']['rpc-error']['error-message'].trim();
 				}
-				this.emit('rpcError', errmsg, msg);
+				this.emit('rpcError', msgid, errmsg, msg, elapsed);
 			} else if (msgid) {
 				if (this.callbacks[msgid])
 					this.callbacks[msgid](msgid, msg);
 
 				if ('ok' in data['rpc-reply']) {
-					this.emit('rpcOk', msgid);
+					this.emit('rpcOk', msgid, elapsed);
 				} else {
-					this.emit('rpcResponse', msg);
+					this.emit('rpcResponse', msgid, msg, elapsed);
 				}
 			} else {
 				return this.emit('netconfError', 'rpc-reply w/o message-id received', msg);
@@ -197,9 +237,7 @@ export class ncclient extends EventEmitter {
 		this.bytes += chunk.length;
 		this.emit('data', this.bytes);
 
-		if (this.caplist.includes('base:1.1')) {
-			// rfc6242 ch4.2 Chunked Framing
-			// capability: netconf:base:1.1
+		if (this.base11Framing) {
 			let pos = 0;
 			while ((pos+3)<this.rawbuf.length) {
 			  if (this.rawbuf.slice(pos, pos+4) === "\n##\n") {
@@ -234,8 +272,6 @@ export class ncclient extends EventEmitter {
 			  this.rawbuf = this.rawbuf.slice(pos);
 			}
 		} else {
-			// rfc6242 ch4.3 End-of-Message Framing
-			// capability: netconf:base:1.0
 			if (this.rawbuf.match("]]>]]>")) {
 				const msgs = this.rawbuf.split("]]>]]>");
 				this.rawbuf = msgs.pop() || "";
@@ -250,6 +286,9 @@ export class ncclient extends EventEmitter {
 			delete this.callbacks[msgid];
 			if (Object.keys(this.callbacks).length === 0) this.emit('idle');
 		}
+		if (this.timestamp[msgid] != null) {
+			delete this.timestamp[msgid];
+		}
 	}
 
 	private _sshDebug(message: string) {
@@ -260,11 +299,11 @@ export class ncclient extends EventEmitter {
 		if (this.connected) {
 			this.emit('busy');
 			const options = {
-				ignoreAttributes: false,
 				attributeNamePrefix : "@_",
-				removeNSPrefix: true,
-				ignoreNameSpace: true
-			};	
+				ignoreAttributes: false,
+				ignoreNameSpace: false,
+				removeNSPrefix: true
+			};
 			const data = new XMLParser(options).parse(request);
 
 			if (data['rpc']['@_message-id']) {
@@ -274,17 +313,14 @@ export class ncclient extends EventEmitter {
 					return this.emit('error', 'NETCONF ERROR', 'message-id is already in-use');
 				} else {
 					this.callbacks[msgid] = callback;
+					this.timestamp[msgid] = process.hrtime();
 					setTimeout((() => this._msgTimeout(msgid)), timeout*1000);
 
-					if (this.caplist.includes('base:1.1')) {
-						// rfc6242 ch4.2 Chunked Framing
-						// capability: netconf:base:1.1
+					if (this.base11Framing) {
 						this.ncs.write(`\n#${request.length}\n`);
 						this.ncs.write(request);
 						this.ncs.write('\n##\n');
 					} else {
-						// rfc6242 ch4.3 End-of-Message Framing
-						// capability: netconf:base:1.0
 						this.ncs.write(request);
 						this.ncs.write("]]>]]>");
 					}
@@ -324,15 +360,11 @@ export class ncclient extends EventEmitter {
 		if (this.connected) {
 			this.emit('busy');
 			const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="disconnect" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><close-session/></rpc>';
-			if (this.caplist.includes('base:1.1')) {
-				// rfc6242 ch4.2 Chunked Framing
-				// capability: netconf:base:1.1
+			if (this.base11Framing) {
 				this.ncs.write(`\n#${request.length}\n`);
 				this.ncs.write(request);
 				this.ncs.write('\n##\n');
 			} else {
-				// rfc6242 ch4.3 End-of-Message Framing
-				// capability: netconf:base:1.0
 				this.ncs.write(request);
 				this.ncs.write("]]>]]>");
 			}
@@ -340,8 +372,8 @@ export class ncclient extends EventEmitter {
 		}
 	}
 
-	connect(config: ssh2.ConnectConfig, sshKeepAlive: number | undefined, keyfile: string | undefined, sshdebug: boolean | undefined) {
-		console.debug('ncclient:connect()');	
+	connect(config: ssh2.ConnectConfig, sshKeepAlive: number | undefined, keyfile: string | undefined, clientCapabilities: string[] | undefined, sshdebug: boolean | undefined) {
+		console.debug('ncclient:connect()');
 		this.emit('busy');
 
 		if (keyfile && !config.password && !config.privateKey) {
@@ -368,6 +400,15 @@ export class ncclient extends EventEmitter {
 		if (sshKeepAlive) {
 			// Enable SSH Session Keepalive (value in ms)
 			config.keepaliveInterval = sshKeepAlive*1000;
+		}
+
+		if (clientCapabilities) {
+			this.clientCapabilities = clientCapabilities;
+		} else {
+			this.clientCapabilities =  [
+				"urn:ietf:params:netconf:base:1.0",
+				"urn:ietf:params:netconf:base:1.1"
+			];
 		}
 
 		try {
