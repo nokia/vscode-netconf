@@ -217,6 +217,18 @@ compatibility and extend the capabilities.
 
 We've captured the following feature candidates for future evolution:
 
+* **Add Host Key Validation**
+
+  By default, the [ssh2 library](https://github.com/mscdex/ssh2) automatically
+  accepts any server-key. In secure environments it can be desired to
+  implement the `hostVerifier` callback function, to identify the server
+  host blocking potential man-in-the-middle attacks. The ask would be, to use
+  the `~/.ssh/known_hosts` file for validation.
+
+  In the case the node is unknown or the host-key has changed, a pop-up
+  dialogue would inform the user allowing to accept the new key and to update the
+  `known_hosts` or to block the connection.
+
 * **Device Information**
 
   Capturing device-level information and display to the user (Vendor, Device
