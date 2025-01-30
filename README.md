@@ -294,6 +294,10 @@ Contributions are welcome, to help improving the usability of `vscode-netconf`.
   When using containerized environments most propably the host running
   containerlab is your SSH target.
 
+### Release 1.2.1
+- Improved error-handling for Ciena supporting XML tags to fix:
+  https://github.com/nokia/vscode-netconf/issues/2
+
 ## License
 
 This project is licensed under the BSD 3-Clause license - see the

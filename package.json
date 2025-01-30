@@ -2,7 +2,7 @@
 	"name": "netconf-client",
 	"displayName": "NETCONF client for Visual Studio Code",
 	"description": "NETCONF client by Nokia",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"author": {
 		"name": "Sven Wisotzky",
 		"url": "https://www.linkedin.com/in/sven-wisotzky-44788333"

@@ -227,10 +227,16 @@ export class ncclient extends EventEmitter {
 
 			if ('rpc-error' in data['rpc-reply']) {
 				let errmsg : string;
-				if (Array.isArray(data['rpc-reply']['rpc-error'])) {
+				const rpcError = data['rpc-reply']['rpc-error'];
+
+				if (Array.isArray(rpcError)) {
 					errmsg = 'Multiple RPC errors';
 				} else {
-					errmsg = data['rpc-reply']['rpc-error']['error-message'].trim();
+					const entry = Object.entries(rpcError).find(([key, value]) => key.startsWith('error-message'));
+					if (entry && typeof entry[1] === 'string')
+						errmsg = entry[1].trim();
+					else
+						errmsg = "Unsupported Error Message Format";
 				}
 				this.logger.warn(`${msgid} RPC-ERROR received, time=${elapsed}`, this._dumpXML(msg));
 				this.emit('rpcError', msgid, errmsg, msg, elapsed);
