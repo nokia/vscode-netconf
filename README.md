@@ -286,6 +286,14 @@ Contributions are welcome, to help improving the usability of `vscode-netconf`.
   for RPCs that return detailed responses like `<get>`, `<get-config`.
   For those cases, it is shown in the console-log only.
 
+### Release 1.2.0
+- Improved logging using a dedicated vsCode OUTPUT channel called `netconf`.
+- Support for vsCode REMOTE SSH in case you don't have direct connectivity
+  to your network devices. Use `Remote SSH` to connect to your SSH jumphost,
+  and install this NETCONF extension using vsCode on the remote host.
+  When using containerized environments most propably the host running
+  containerlab is your SSH target.
+
 ## License
 
 This project is licensed under the BSD 3-Clause license - see the

@@ -1,16 +1,20 @@
 /*
   @author Sven Wisotzky
   
-  © 2023 Nokia
+  © 2025 Nokia
   Licensed under the BSD 3-Clause License
   SPDX-License-Identifier: BSD-3-Clause
 */
 
 'use strict';
 
+import {Logger, ConsoleLogger} from './logger';
 import {EventEmitter} from 'events';
 import * as ssh2 from 'ssh2';
-import {XMLParser, XMLBuilder} from 'fast-xml-parser';
+import {XMLValidator, XMLParser, XMLBuilder} from 'fast-xml-parser';
+import xmlFormat from 'xml-formatter';
+
+export type netconfCallback = (msgid: string, msg: string) => void;
 
 export class ncclient extends EventEmitter {
 	client: ssh2.Client;
@@ -19,21 +23,24 @@ export class ncclient extends EventEmitter {
 	bytes: number;
 	ncs: any;
 	caplist: string[];
-	callbacks: any;
+	callbacks: Record<string,  netconfCallback>;
 	timestamp: any;
 	connected: boolean;
 	privkey: string | undefined;
 	clientCapabilities: string[];
 	base11Framing: boolean;
+	logger: Logger;
 
-	constructor () {
-		console.debug('ncclient:constructor()');
+	private connectInfo: ssh2.ConnectConfig;
+
+	constructor (logger: Logger|undefined = undefined) {
 		super();
 
-		this.client = new ssh2.Client();
-		this._registerCallbacks();
+		if (logger)
+			this.logger = logger.clone();
+		else
+			this.logger = new ConsoleLogger();
 
-		this.connected = false;
 		this.rawbuf = "";
 		this.msgbuf = "";
 		this.bytes = 0;
@@ -44,26 +51,44 @@ export class ncclient extends EventEmitter {
 		this.privkey = undefined;
 		this.clientCapabilities = [];
 		this.base11Framing = false;
+
+		this.connected = false;
+		this.connectInfo = {};
+	
+		this.client = new ssh2.Client();
+		this._registerCallbacks();
+	
+		this.logger.debug('ncclient object created');
+	}
+
+	private _dumpXML(data: string): string {
+		try {
+			return '\n'+xmlFormat(data, {indentation: '  ', collapseContent: true, lineSeparator: '\n', whiteSpaceAtEndOfSelfclosingTag: true});
+		} catch (e) {
+			return `\n${data}`;
+		}
 	}
 
 	private _registerCallbacks() {
 		this.client.on('error', (err: Error & ssh2.ClientErrorExtensions) => {
-			console.error('ssh error');
+			this.logger.error('SSH ERROR EVENT', err.toString());
 			this.emit('error', 'SSH ERROR', err.toString());
 		});
 
 		this.client.on('connect', () => {
-			console.log('ssh connect');
+			this.logger.info('SSH CONNECT EVENT');
 		});
 
 		this.client.on('timeout', () => {
-			console.error('ssh timeout');
+			this.logger.warn('SSH TIMEOUT EVENT');
 		});
 
 		this.client.on('close', () => {
-			console.error('ssh close');
+			this.logger.info('SSH CLOSE EVENT');
 			this.emit('disconnected');
 			this.connected = false;
+			this.connectInfo = {};
+			this.logger.setContext(undefined);
 			this.rawbuf = "";
 			this.msgbuf = "";
 			this.bytes = 0;
@@ -73,25 +98,27 @@ export class ncclient extends EventEmitter {
 		});
 
 		this.client.on('end', () => {
-			console.log('ssh end');
+			this.logger.info('SSH END EVENT');
 		});
 
 		this.client.on('banner', (message: string) => {
+			this.logger.info('SSH BANNER EVENT', message.trim());
 			this.emit('sshBanner', message);
 		});
 
 		this.client.on('greeting', (message: string) => {
+			this.logger.info('SSH GREETING EVENT', message.trim());
 			this.emit('sshGreeting', message);
 		});
 
 		this.client.on('ready', () => {
-			console.log('ssh2 session is ready');
+			this.logger.info('SSH READY EVENT');
 
 			this.client.subsys('netconf', (err: Error | undefined, stream: ssh2.ClientChannel) => {
 				if (err) {
-					console.error('error occured '+err.toString())
+					this.logger.error('SSH subsystem netconf failed', err.toString())
 				} else {
-					console.log('netconf subsystem is ready');
+					this.logger.info('SSH subsystem netconf entered');
 					this.ncs = stream;
 					stream.on('data', (data: any) => {this._dataHandler(data)});
 				}
@@ -106,15 +133,19 @@ export class ncclient extends EventEmitter {
 			ignoreNameSpace: false,
 			removeNSPrefix: true
 		};
-		const data = new XMLParser(options).parse(msg);
 
-		if (data===null) {
-			return this.emit('netconfError', 'Invalid XML', msg);
+		const validationResult = XMLValidator.validate(msg);
+		if (validationResult !== true) {
+			const errmsg = `Malformed response, ${validationResult.err.code}, Details: ${validationResult.err.msg}`;
+			this.logger.error('NETCONF ERROR', `${errmsg}\n${msg}`);
+			return this.emit('netconfError', errmsg, msg);
 		}
 
+		const data = new XMLParser(options).parse(msg);
 		if (data.hello) {
 			if (this.connected) {
 				// Note: we are already connected; there should be no second hello-message
+				this.logger.error('NETCONF ERROR', 'unexpected <hello> message', this._dumpXML(msg));
 				return this.emit('netconfError', 'unexpected <hello> message', msg);
 			} else {
 				const sessionId = data.hello['session-id'];
@@ -136,14 +167,14 @@ export class ncclient extends EventEmitter {
 				if (serverCapabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-nmda?module=ietf-netconf-nmda')) this.caplist.push('netconf-nmda');
 
 				if (this.clientCapabilities.includes('urn:ietf:params:netconf:base:1.1') && serverCapabilities.includes('urn:ietf:params:netconf:base:1.1')) {
-					console.log('[base:1.1] rfc6242 ch4.2 Chunked Framing');
+					this.logger.info('Framing: [base:1.1] rfc6242 ch4.2 Chunked Framing');
 					this.base11Framing = true;
 				} else if (this.clientCapabilities.includes('urn:ietf:params:netconf:base:1.0') && serverCapabilities.includes('urn:ietf:params:netconf:base:1.0')) {
-					console.log('[base:1.0] rfc6242 ch4.3 End-of-Message Framing');
+					this.logger.info('Framing: [base:1.0] rfc6242 ch4.3 End-of-Message Framing');
 					this.base11Framing = false;
 				} else {
-					console.error('[rfc6242] netconf-over-ssh framing incompatible')
-					this.emit('netconfError', 'NETCONF capabilities incompatible', msg);
+					this.logger.error('NETCONF ERROR', 'netconf-over-ssh framing capabilities incompatible', this._dumpXML(msg));
+					this.emit('netconfError', '[rfc6242] netconf-over-ssh framing capabilities incompatible', msg);
 					return this.disconnect();
 				}
 
@@ -160,13 +191,17 @@ export class ncclient extends EventEmitter {
 				this.ncs.write(`<?xml version="1.0" encoding="UTF-8"?>\n${netconfHello}]]>]]>`);
 
 				this.connected = true;
+				this.logger.info(`Connection established, session-id=${sessionId}`, this._dumpXML(msg));
+				this.logger.info('Server capabilities: ', this.caplist);
 				return this.emit('connected', msg, this.caplist, sessionId);
 			}
 		} else if (!this.connected) {
 			// Note: we are not yet connected; first server message must be <hello>
+			this.logger.error('NETCONF ERROR', 'expecting <hello> message', this._dumpXML(msg));
 			this.emit('netconfError', 'expecting <hello> message', msg);
 			return this.disconnect();
 		} else if (data.notification) {
+			this.logger.info('netconf notification received', this._dumpXML(msg));
 			return this.emit('notification', msg);
 		} else if (data['rpc-reply']) {
 			let msgid = undefined;
@@ -197,24 +232,29 @@ export class ncclient extends EventEmitter {
 				} else {
 					errmsg = data['rpc-reply']['rpc-error']['error-message'].trim();
 				}
+				this.logger.warn(`${msgid} RPC-ERROR received, time=${elapsed}`, this._dumpXML(msg));
 				this.emit('rpcError', msgid, errmsg, msg, elapsed);
 			} else if (msgid) {
-				if (this.callbacks[msgid])
+				if (msgid in this.callbacks)
 					this.callbacks[msgid](msgid, msg);
 
 				if ('ok' in data['rpc-reply']) {
+					this.logger.info(`${msgid} RPC-OK received, time=${elapsed}`, this._dumpXML(msg))				
 					this.emit('rpcOk', msgid, elapsed);
 				} else {
+					this.logger.info(`${msgid} response received, time=${elapsed}`, this._dumpXML(msg))				
 					this.emit('rpcResponse', msgid, msg, elapsed);
 				}
 			} else {
+				this.logger.error('NETCONF ERROR', 'rpc-reply w/o message-id received', this._dumpXML(msg));
 				return this.emit('netconfError', 'rpc-reply w/o message-id received', msg);
 			}
 
-			if (msgid && this.callbacks[msgid]) delete this.callbacks[msgid];
+			if (msgid && msgid in this.callbacks) delete this.callbacks[msgid];
 			if (Object.keys(this.callbacks).length === 0) this.emit('idle');
 		 } else {
 			// Note: NETCONF server-message must be of type <hello>, <rpc-reply> or <notification>
+			this.logger.error('NETCONF ERROR', 'unsupported message received', this._dumpXML(msg));
 			return this.emit('netconfError', 'Unsupported message received', msg);
 		}
 	}
@@ -263,6 +303,7 @@ export class ncclient extends EventEmitter {
 				this.rawbuf = "";
 				this.msgbuf = "";
 				pos = 0;
+				this.logger.error('FRAME ERROR', 'chunk start not found');
 				this.emit('error', 'base_1_1 error', 'chunk start not found');
 				return;
 			  }
@@ -281,40 +322,64 @@ export class ncclient extends EventEmitter {
 	}
 
 	private _msgTimeout(msgid: string ) {
-		if (this.callbacks[msgid] != null) {
+		if (msgid in this.callbacks) {
+			this.logger.error('ERROR', 'netconf-rpc timeout');
 			this.emit('rpcTimeout', msgid);
+			
 			delete this.callbacks[msgid];
 			if (Object.keys(this.callbacks).length === 0) this.emit('idle');
 		}
-		if (this.timestamp[msgid] != null) {
+
+		if (msgid in this.timestamp)
 			delete this.timestamp[msgid];
-		}
 	}
 
 	private _sshDebug(message: string) {
-		console.debug("[ssh2]", message);
+		this.logger.debug("[ssh2]", message);
 	}
 
-	rpc(request: string, timeout: number = 300, callback: any = undefined) {
+	/**
+	 * Executes NETCONF RPC on the connected NETCONF server
+	 * 
+	 * @param request Complete(!) NETCONF RPC request including `message-id` as XML string
+	 * @param timeout How long to wait for the NETCONF response, default: 300s (5min)
+	 * @param callback Callback to be triggered when the response comes back
+	 * 
+	 */
+
+	rpc(request: string, timeout: number = 300, callback: netconfCallback) {
+		this.logger.debug('ncclient:rpc()');
+
 		if (this.connected) {
-			this.emit('busy');
 			const options = {
 				attributeNamePrefix : "@_",
 				ignoreAttributes: false,
 				ignoreNameSpace: false,
 				removeNSPrefix: true
 			};
-			const data = new XMLParser(options).parse(request);
 
+			const validationResult = XMLValidator.validate(request);
+			if (validationResult !== true) {
+				const errmsg 	 = `Malformed request, ${validationResult.err.code}`
+				const errdetails = `Details: ${validationResult.err.msg}`;
+				this.logger.error('NETCONF ERROR', `${errmsg}, ${errdetails}\n${request}`);
+				return this.emit('error', errmsg, errdetails);
+			}
+	
+			this.logger.info('execute netconf rpc-request', this._dumpXML(request));
+
+			const data = new XMLParser(options).parse(request);
 			if (data['rpc']['@_message-id']) {
 				const msgid = data['rpc']['@_message-id'];
 
-				if (this.callbacks[msgid] != null) {
+				if (msgid in this.callbacks) {
+					this.logger.error('NETCONF ERROR', 'bad request: message-id is already in-use');
 					return this.emit('error', 'NETCONF ERROR', 'message-id is already in-use');
 				} else {
 					this.callbacks[msgid] = callback;
 					this.timestamp[msgid] = process.hrtime();
 					setTimeout((() => this._msgTimeout(msgid)), timeout*1000);
+					this.emit('busy');
 
 					if (this.base11Framing) {
 						this.ncs.write(`\n#${request.length}\n`);
@@ -326,37 +391,47 @@ export class ncclient extends EventEmitter {
 					}
 				}
 			} else {
+				this.logger.error('NETCONF ERROR', 'bad request: message-id missing');
 				return this.emit('error', 'NETCONF ERROR', 'message-id missing');
 			}
 		} else {
+			this.logger.error('NETCONF ERROR', 'bad request: client is not connected');
 			return this.emit('error', 'NETCONF ERROR', 'client is not connected');
 		}
 	}
 
+	/**
+	 * Lock candidate datastore
+	 */
+
 	lock() {
-		console.debug("ncclient:lock()");
+		this.logger.debug('ncclient:lock()');
 		if (this.connected) {
 			const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="lock" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><lock><target><candidate/></target></lock></rpc>';
 			this.rpc(request, 10,  (msgid : string, msg : string) => {
-				console.debug(`#${msgid} ${msg}`);
+				this.logger.info('candidate datastore successfully locked');
 				return this.emit('locked');
 			});
 		}
 	}	
 
 	unlock() {
-		console.debug("ncclient:unlock()");
+		this.logger.debug('ncclient:unlock()');
 		if (this.connected) {
 			const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="unlock" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><unlock><target><candidate/></target></unlock></rpc>';
 			this.rpc(request, 10,  (msgid : string, msg : string) => {
-				console.debug(`#${msgid} ${msg}`);
+				this.logger.info('candidate datastore successfully unlocked');
 				return this.emit('unlocked');
 			});
 		}
 	}
+
+	/**
+	 * Close NETCONF session
+	 */
 	
 	closeSession() {
-		console.debug('ncclient:closeSession()');
+		this.logger.debug('ncclient:closeSession()');
 		if (this.connected) {
 			this.emit('busy');
 			const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="disconnect" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><close-session/></rpc>';
@@ -372,9 +447,27 @@ export class ncclient extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Connect to NETCONF server
+	 * 
+	 * @param {ssh2.ConnectConfig} config SSH2 Connection Information: host, port, username, password, ...
+	 * @param {number} sshKeepAlive SSH2 Connection Keep Alive in seconds
+	 * @param {string} keyfile File to be used that stores the private keys
+	 * @param {string[]} clientCapabilities Custom NETCONF capabilities to be sent as part of client hello message
+	 * @param {boolean} sshdebug Used to enable/disable debugging for underlying SSH2 transport layer (debugging KEX errors, etc.)
+	 * 
+	 */
+
 	connect(config: ssh2.ConnectConfig, sshKeepAlive: number | undefined, keyfile: string | undefined, clientCapabilities: string[] | undefined, sshdebug: boolean | undefined) {
-		console.debug('ncclient:connect()');
+		this.logger.debug('ncclient:connect()');
+		if (this.connected) {
+			this.logger.error('Already Connected!');
+			return this.emit('error', 'Already Connected', `Disconnect from ${this.connectInfo.host} as user ${this.connectInfo.username} first`);
+		}
+
 		this.emit('busy');
+		this.connectInfo = config;
+		this.logger.setContext(`[${config.username}@${config.host}]`);
 
 		if (keyfile && !config.password && !config.privateKey) {
 			if (keyfile.charAt(0)==="~") {
@@ -385,8 +478,10 @@ export class ncclient extends EventEmitter {
 			}
 			catch (e) {
 				if (typeof e === "string") {
+					this.logger.error('SSH ERROR', `Can't load keys-file ${keyfile}`, e);
 					this.emit('error', 'SSH ERROR', "Can't load keys-file "+keyfile+"\n"+e);
 				} else if (e instanceof Error) {
+					this.logger.error('SSH ERROR', `Can't load keys-file ${keyfile}`, e.message);
 					this.emit('error', 'SSH ERROR', "Can't load keys-file "+keyfile+"\n"+e.message);
 				}
 			}
@@ -416,15 +511,21 @@ export class ncclient extends EventEmitter {
 		}
 		catch (e) {
 			if (typeof e === "string") {
+				this.logger.error('SSH ERROR', 'Cannot connect', e);
 				this.emit('error', 'SSH ERROR', e);
 			} else if (e instanceof Error) {
+				this.logger.error('SSH ERROR', 'Cannot connect', e.message);
 				this.emit('error', 'SSH ERROR', e.message);
 			}
 		}
 	}
 
+	/**
+	 * Disconnect from NETCONF server
+	 */
+
 	disconnect() {
-		console.debug('ncclient:disconnect()');
+		this.logger.debug('ncclient:disconnect()');
 		this.client.end();
 	}
 }

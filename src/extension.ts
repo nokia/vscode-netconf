@@ -1,7 +1,7 @@
 /*
   @author Sven Wisotzky
-
-  © 2023 Nokia
+  
+  © 2025 Nokia
   Licensed under the BSD 3-Clause License
   SPDX-License-Identifier: BSD-3-Clause
 */
@@ -11,7 +11,10 @@ import * as ssh2 from 'ssh2';
 import * as os from 'os';
 import * as fs from 'fs';
 import { ncclient } from './ncclient';
+import { ExtensionLogger } from './vscExtensionLogger';
 import xmlFormat from 'xml-formatter';
+
+let logs = new ExtensionLogger('netconf')
 
 interface ConnectInfo extends ssh2.ConnectConfig {
 	id: string;
@@ -19,7 +22,7 @@ interface ConnectInfo extends ssh2.ConnectConfig {
 }
 
 function playAudio(soundFile: string) {
-	// console.debug(`playAudio(${soundFile})`)
+	// logs.debug(`playAudio(${soundFile})`)
 	// const sound = new Audio(soundFile);
 	// sound.volume = 1.0;
 	// sound.play();
@@ -49,12 +52,12 @@ function showDocument(data: string) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Activating NETCONF client by Nokia');
+	logs.info('Activating NETCONF client by Nokia');
 
 	// --- audio files ------------------------------------------------------
 
 	const expath = context.extensionUri;
-    console.log(expath.fsPath);
+    logs.info('vscode-netconf extension path:', expath.fsPath);
 
 	const connectSound    = vscode.Uri.joinPath(expath, 'resources', 'audio', 'connect.oga'   ).fsPath;
 	const disconnectSound = vscode.Uri.joinPath(expath, 'resources', 'audio', 'disconnect.oga').fsPath;
@@ -115,7 +118,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// --- event handlers ---------------------------------------------------
 
-	const client = new ncclient();
+	const client = new ncclient(logs);
 	let nlist : string[] = [];
 
 	context.subscriptions.push(vscode.window.onDidChangeWindowState( (event : vscode.WindowState) => {
@@ -242,7 +245,6 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	client.on('rpcResponse', (msgid, data, elapsed) => {
-		console.log(`netconf #${msgid}: successful, time=${elapsed}`);
 		showXmlDocument(data);
 		playAudio(successSound);
 	});
@@ -266,7 +268,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});	
 
 	client.on('rpcTimeout', (msgid) => {
-		vscode.window.showInformationMessage(`netconf #${msgid}: failed with timeout`);
+		vscode.window.showInformationMessage(`netconf request #${msgid}: failed with timeout`);
 		playAudio(warningSound);
 	});
 
@@ -287,19 +289,19 @@ export function activate(context: vscode.ExtensionContext) {
 	});	
 
 	client.on('info', (message: string, details: string) => {
-		console.info(message, details);
+		logs.info(message, details);
 		vscode.window.showInformationMessage(`${message}\n${details}`);
 		playAudio(infoSound);
 	});
 
 	client.on('warning', (message: string, details: string) => {
-		console.warn(message, details);
+		logs.warn(message, details);
 		vscode.window.showWarningMessage(`${message}\n${details}`);
 		playAudio(warningSound);
 	});
 
 	client.on('error', (message: string, details: string) => {
-		console.error(message, details);
+		logs.error(message, details);
 		vscode.window.showErrorMessage(`${message}\n${details}`);
 		playAudio(errorSound);
 	});
@@ -369,10 +371,10 @@ export function activate(context: vscode.ExtensionContext) {
 		const repoUri = vscode.Uri.joinPath(gitUri, 'netconf-examples');
 
 		if (fs.existsSync(repoUri.fsPath)) {
-			console.log('netconf-examples already exists, add to workspace');
+			logs.info('netconf-examples already exists, add to workspace');
 			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: repoUri});
 		} else {
-			console.log('clone netconf-examples to add to workspace');
+			logs.info('clone netconf-examples to add to workspace');
 			vscode.commands.executeCommand('git.clone', 'https://github.com/nokia/netconf-examples.git', gitPath);
 		}
 	}));
@@ -398,7 +400,7 @@ export function activate(context: vscode.ExtensionContext) {
 		if (editor) {
 			if (editor.document) {
 				client.rpc(editor.document.getText(), 300, (msgid : string, msg : string) => {
-					console.debug(`#${msgid} done`);
+					logs.debug(`rpc #${msgid} done`);
 				});
 			}
 		}
@@ -407,14 +409,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.getcfg', async () => {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>';
 		client.rpc(request, 300, (msgid : string, msg : string) => {
-			console.debug(`#${msgid} done`);
+			logs.debug(`rpc #${msgid} done`);
 		});
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.get', async () => {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get/></rpc>';
 		client.rpc(request, 300, (msgid : string, msg : string) => {
-			console.debug(`#${msgid} done`);
+			logs.debug(`rpc #${msgid} done`);
 		});
 	}));
 
@@ -428,7 +430,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="subscribe" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><create-subscription xmlns="urn:ietf:params:xml:ns:netconf:notification:1.0" /></rpc>';
 		client.rpc(request, 60, (msgid : string, msg : string) => {
-			console.debug(`#${msgid} done`);
+			logs.debug(`rpc #${msgid} done`);
 		});
 	}));
 
@@ -462,21 +464,21 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.commit', async () => {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="commit" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><commit/></rpc>';
 		client.rpc(request, 60, (msgid : string, msg : string) => {
-			console.debug(`#${msgid} done`);
+			logs.debug(`rpc #${msgid} done`);
 		});
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.discard', async () => {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="discard" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><discard-changes/></rpc>';
 		client.rpc(request, 60, (msgid : string, msg : string) => {
-			console.debug(`#${msgid} done`);
+			logs.debug(`rpc #${msgid} done`);
 		});
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.validate', async () => {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="validate" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><validate><source><candidate/></source></validate></rpc>';
 		client.rpc(request, 60, (msgid : string, msg : string) => {
-			console.debug(`#${msgid} done`);
+			logs.debug(`rpc #${msgid} done`);
 		});
 	}));
 
