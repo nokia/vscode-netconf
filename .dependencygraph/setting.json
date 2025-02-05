@@ -1,0 +1,13 @@
+{
+  "entryFilePath": "out/extension.js",
+  "alias": false,
+  "resolveExtensions": [
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".scss",
+    ".less"
+  ]
+}

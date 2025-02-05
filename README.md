@@ -1,15 +1,13 @@
 # NETCONF for Visual Studio Code
 
-![vscode-netconf](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/vscode-netconf.gif)
-
 ## About
 
 This vsCode extension implements an interactive NETCONF client, that runs
-against NETCONF servers, such as NOKIA 7750 Service Routers. By integrating
-NETCONF with Visual Studio Code, users will be able to extend the industry
-leading open-source code editor and integrated development environment by
-the ability to communicate with latest networking equipment using the
-NETCONF protocol.
+against NETCONF servers, like NOKIA IP Routers powered by SR OS and SRLinux.
+By integrating NETCONF with Visual Studio Code, users will be able to extend
+the industry leading open-source code editor and integrated development
+environment by the ability to communicate with latest networking equipment
+using the NETCONF protocol.
 
 The extension is implemented in native JavaScript/TypeScript and works
 on your desktop system of choice (Windows, macOS, Linux).
@@ -28,9 +26,6 @@ $ npm install .
 $ vsce package
 ```
 
-To simplify installation and updates we are planning to make `vscode-netconf` available on Visual Studio Code
-[Extensions Marketplace](https://marketplace.visualstudio.com/vscode) soon!
-
 ## Contributions
 
 We are happy to have people contributing to this project. If you have feature
@@ -42,36 +37,14 @@ normal pull-request procedure.
 
 ## Getting Started!
 
-To use this extension, it is required to specify connection details in the
-extension settings.
+Netconf server settings are persisted as part of the extension settings.
+For common cases like adding or deleting server entries, open the
+NETCONF view from the activity bar and you will have direct access to
+the server and connection list.
 
-![NETCONF Settings](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/ExtensionSettings.png)
-
-The list of NETCONF servers must be provided in JSON format like this:
-
-```json
-"netconf.serverList": [
-	{
-		"id": "admin@localhost",
-		"host": "localhost",
-		"port": 830,
-		"username": "admin",
-		"password": "admin"
-	},
-	{
-		"id": "PE1",
-		"host": "192.168.0.100",
-		"port": 830,
-		"username": "admin"
-	}
-]
-```
-
-All features are accessible from vsCode Command Palette. For convenience,
-shortcuts are provided from the statusbar (used as toolbar) and the editor
-title for XML files.
-
-![Client Connected](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/ClientConnected.png)
+If you require advanced settings, like persisting the server passwords
+or adjusting the client capabilities, you will find those options as
+part of the extension settings.
 
 ## Supported Features
 
@@ -105,15 +78,12 @@ title for XML files.
 
   NETCONF request examples are available from
   https://github.com/nokia/netconf-examples and can be added to the `vscode`
-  workspace from the status-bar.
+  workspace.
 
   By default, the example library will be cloned to the users home directory.
   You can set the `git.defaultCloneDirectory` in the Visual Studio Code
   settings to an alternative folder like "~/Development" based on your
   personal needs.
-
-  We are planning to have coverage for IETF, OpenConfig and vendor-models
-  (Nokia).
 
 * **Access to server SSH greetings, SSH banner**
 
@@ -132,30 +102,6 @@ title for XML files.
   To check the logs, use the console-view part of `Developer tools`
   (accessible from `Help`).
 
-* **Option: SSH keep-alive**
-
-  Keep-alives can be enabled to automatically detect, if the underlying
-  SSHv2 session has died.
-
-* **Status-bar icons**
-
-  The status-bar allows to pick a NETCONF server from the list of configured
-  servers (extension settings), and to connect/disconnect to the server. If
-  connected, the system will show how much data has been received so far
-  from the NETCONF server.
-
-  In addition, it is possible execute unfiltered `<get/>` and `<get-config/>`
-  requests directly from status-bar, without the need to open the command
-  palette.
-
-  If the connected NETCONF server supports the candidate datastore, additional
-  icons will appear to lock/unlock, validate, discard changes and commit the candidate datastore.
-
-* **Send RPC from Editor Title**
-
-  If an XML document is opened in a TextEditor, the `Run` menu will provide
-  a shortcut to send this as request to the NETCONF server.
-
 ## Compatibility
 
 Following vendors and device families have been tested so far:
@@ -167,7 +113,8 @@ Following vendors and device families have been tested so far:
 | Ericsson | 6000 series | IPOS 23.1 |
 | Huawei | NetEngine 8000 series | rel 8.22/1 |
 | Juniper | MX series | JunOS 22.4R1 |
-| Nokia | 7750 SR family | SR OS 22.10<br>SR OS 23.3 |
+| Nokia | SR families | SR OS |
+| Nokia | SRL families | SR Linux |
 
 We don't mind to get access to 3rd party equipment (preferred virtual
 router/simulator images as virtual-machine or docker), test licenses and
@@ -194,17 +141,6 @@ compatibility and extend the capabilities.
   text without differentiation between message title and details and there is no
   possibility to show preformatted text and enforce line-breaks. In consequence,
   SSH banners are not displayed very nicely.
-
-* In [atom-netconf](https://github.com/nokia/atom-netconf) we've provided an
-  option to enable audio feedback to improve accessibility. For an unknown reason,
-  we've not been able to get this working using vscode. As vscode has added a
-  feature called
-  [AudioCues](https://code.visualstudio.com/docs/editor/accessibility#_audio-cues)
-  in June 2022, we may need to wait until the
-  [Extensions API](https://code.visualstudio.com/api/references/vscode-api)
-  gets extended to allow extensions to play audio.
-
-  Related to vscode-issue [#175986](https://github.com/microsoft/vscode/issues/175986).
 
 * Under rare conditions, NETCONF-over-SSH session death is not properly propagated.
   SSH-level keepalive mechanism can be activated to improve session health checks.
@@ -298,9 +234,17 @@ Contributions are welcome, to help improving the usability of `vscode-netconf`.
 - Improved error-handling for Ciena supporting XML tags to fix:
   https://github.com/nokia/vscode-netconf/issues/2
 
+### Release 2.0.0
+- New user-interface: NETCONF view (check activity bar/side bar)
+  Note: Old UI is not longer available
+- Allow multiple concurrent connections to multiple servers
+  Note: Dedicated OUTPUT channels are used per server
+- Adhoc NETCONF connections from containerlab extension
+- Ask user for password, if authentication has failed
+
 ## License
 
 This project is licensed under the BSD 3-Clause license - see the
 [LICENSE](https://github.com/nokia/vscode-netconf/blob/master/LICENSE).
 
-**Copyright (c) 2023 NOKIA**
+**Copyright (c) 2025 NOKIA**

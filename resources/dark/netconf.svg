@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="250" height="250" viewBox="0 0 132 132" xmlns="http://www.w3.org/2000/svg">
+  
+	<mask id="rt">
+		<rect width="120" height="120" fill="white"/>
+        <path d="M20,20   L50,50 M20,40  L20,20   L40,20"  stroke="black" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M100,100 L70,70 M80,100 L100,100 L100,80" stroke="black" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        
+        <path d="M20,100  L50,70 M30,70 L50,70 L50,90" stroke="black" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M100,20  L70,50 M70,30 L70,50 L90,50" stroke="black" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+		<circle cx="100" cy="100" r="40" fill="black"/>
+	</mask>
+
+    <rect x="0" y="0" width="120" height="120" rx="20" fill="white" stroke="none" mask="url(#rt)"/>
+
+    <circle cx="100" cy="100" r="28" stroke="white" stroke-width="8" fill="none"/>
+
+    <path d="M89,95   L98,104  L89,113" stroke="white" stroke-width="4" stroke-linecap="square" stroke-linejoin="square" fill="none"/>
+    <path d="M111,87  L102,96  L111,105" stroke="white" stroke-width="4" stroke-linecap="square" stroke-linejoin="square" fill="none"/>
+</svg>
