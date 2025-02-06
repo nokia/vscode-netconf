@@ -17,9 +17,43 @@ import xmlFormat from 'xml-formatter';
 import { ncclient } from './ncclient';
 import { ExtensionLogger } from './vscExtensionLogger';
 
+
+const log : ExtensionLogger = new ExtensionLogger(`netconf | common`);
+let updateBadge: (badge: vscode.ViewBadge | undefined ) => void;
+let selection : NetconfConnectionEntry | undefined;
+
 interface ConnectInfo extends ssh2.ConnectConfig {
     id: string;
     clientCapabilities?: string[];
+}
+
+async function openSettingsEntry(section: string, key: string, value: string) {
+    let refreshTimer = 500;
+
+    if (vscode.env.remoteName) {
+        vscode.commands.executeCommand('workbench.action.openRemoteSettingsFile');
+        refreshTimer = 1000;
+    } else vscode.commands.executeCommand('workbench.action.openSettingsJson');
+
+    setTimeout(async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor?.document) {
+            const content = editor.document.getText();
+
+            const idx1 = content.indexOf(`"${section}"`);
+            const idx2 = content.indexOf(`"${key}": "${value}"`, idx1);
+            if (idx2 === -1) {
+                const pos = editor.document.positionAt(idx1);
+                editor.selection = new vscode.Selection(pos, pos);
+                editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+            } else {
+                const pos1 = editor.document.positionAt(content.slice(idx1, idx2).lastIndexOf('{') + idx1);
+                const pos2 = editor.document.positionAt(content.indexOf('}', idx2)+1);
+                editor.selection = new vscode.Selection(pos1, pos2);
+                editor.revealRange(new vscode.Range(pos1, pos2), vscode.TextEditorRevealType.InCenter);
+            }
+        }
+    }, refreshTimer);
 }
 
 function showXmlDocument(data: string) {
@@ -71,55 +105,71 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
     }
 
     async addServer() {
-        const id = await vscode.window.showInputBox({
-            title: 'Add new NETCONF server',
-            prompt: 'Enter user-friendly name for connection',
-            placeHolder: 'connection name'            
-        });
-        if (!id) return;
+        const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+
+        let id: string | undefined;
+        do {
+            id = await vscode.window.showInputBox({
+                title: 'Add new managed device (step 1/5)',
+                prompt: 'Enter user-friendly name for connection',
+                placeHolder: 'connection-name'            
+            });
+            if (!id) return;
+            if (servers.some(e => e.id === id))
+                vscode.window.showErrorMessage('Connection already exists! Provide unique connection name!');
+        } while (servers.some(e => e.id === id));
 
         const host = await vscode.window.showInputBox({
-            title: 'Add new NETCONF server',
+            title: 'Add new managed device (step 2/5)',
             prompt: 'Enter IP address or hostname',
             placeHolder: 'hostname'
         });
         if (!host) return;
+        if (servers.some(e => e.host === host))
+            vscode.window.showWarningMessage('There is already a connection to the same host!');
 
         const port = await vscode.window.showInputBox({
-            title: 'Add new NETCONF server',
-            prompt: 'Enter port',
+            title: 'Add new managed device (step 3/5)',
+            prompt: 'Enter SSH port (default: 830)',
             value:  vscode.workspace.getConfiguration("netconf").get("defaultPort", 830).toString()
         });
         if (!port) return;
 
         const user = await vscode.window.showInputBox({
-            title: 'Add new NETCONF server',
+            title: 'Add new managed device (step 4/5)',
             prompt: 'Enter username',
             value:  vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin")
         });
         if (!user) return;
 
+        const password = await vscode.window.showInputBox({
+            title: 'Add new managed device step (5/5)',
+            prompt: 'Enter password',
+            password: true
+        });
+
         const caps = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
             "urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"
         ]);
 
-        if (id && host && port && user && caps) {
-            const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+        const newEntry : ConnectInfo = {
+            id: id,
+            host: host,
+            port: Number(port),
+            username: user,
+            clientCapabilities: caps
+        };
+        if (password) newEntry.password = password;
 
-            if (servers.some(e => e.id === id))
-                vscode.window.showErrorMessage('Connection already exists! Provide unique connection name!');
-            else {
-                const newEntry : ConnectInfo = {
-                    id: id,
-                    host: host,
-                    port: Number(port),
-                    username: user,
-                    clientCapabilities: caps
-                };
-
-                servers.push(newEntry);
-                vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
-            }
+        servers.push(newEntry);
+        
+        try {
+            await vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
+        }
+        catch (e) {
+            const errmsg = (e instanceof Error ? e.message : String(e)).replace(/^[A-Z0-9]+:/, '').trim();
+            vscode.window.showErrorMessage(errmsg);
+            log.error(errmsg);
         }
     }
 
@@ -127,41 +177,31 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
         if (node?.label && node?.v4Address && node?.kind) {
             const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
 
-            if (servers.some(e => e.id === node.label))
-                vscode.window.showErrorMessage('Connection already exists!');
-            else {
-                const host = node.v4Address.split('/')[0];
+            const newEntry : ConnectInfo = {
+                id: node.label.split('-').splice(1).join('/'),
+                host: node.label, // if IP address is desired: node.v4Address.split('/')[0];
+                username: vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin"),
+                port: vscode.workspace.getConfiguration("netconf").get("defaultPort", 830),
+                clientCapabilities: vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", ["urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"])
+            };
 
-                const user = vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin");
-                const port = vscode.workspace.getConfiguration("netconf").get("defaultPort", 830);
-                const caps = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
-                    "urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"
-                ]);
-    
-                const newEntry : ConnectInfo = {
-                    id: node.label,
-                    host: host,
-                    username: user,
-                    port: port,
-                    clientCapabilities: caps
-                };
-    
-                servers.push(newEntry);
-                vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
+            if (servers.some(e => e.id === newEntry.id)) {
+                vscode.window.showErrorMessage('Connection already exists!');   
+                return;                             
+            }
+
+            servers.push(newEntry);
+            try {
+                await vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
+            }
+            catch (e) {
+                const errmsg = (e instanceof Error ? e.message : String(e)).replace(/^[A-Z0-9]+:/, '').trim();
+                vscode.window.showErrorMessage(errmsg);
+                log.error(errmsg);
             }
         } else {
-            const logs = new ExtensionLogger(`netconf | clab`);
-            logs.info('clab connect: ', JSON.stringify(node));
-			logs.warn("Information from containerlab is not yet available! Need to wait...");
+			log.warn("Information from containerlab is not yet available! Need to wait...");
             vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
-        }
-    }
-
-    async removeServer(server: NetconfServerEntry) {
-        if (server.label) {
-            let servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
-            servers = servers.filter(entry => entry.id !== server.label);
-            vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
         }
     }
 }
@@ -172,7 +212,7 @@ export class NetconfServerEntry extends vscode.TreeItem {
     constructor(server : ConnectInfo) {
         super(server.id, vscode.TreeItemCollapsibleState.None);
         this.serverInfo = server;
-        this.tooltip = new vscode.MarkdownString(`**${this.label}**\n\n**host:** ${this.serverInfo.host}\n\n**port:** ${this.serverInfo.port}\n\n**user:** ${this.serverInfo.username}`);
+        this.tooltip = new vscode.MarkdownString(`**${this.label}**\n\n**host:** ${this.serverInfo.host}\n\n**port:** ${this.serverInfo.port ?? "default"}\n\n**user:** ${this.serverInfo.username ?? "default"}`);
     }
 }
 
@@ -205,7 +245,7 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
     }
 
     connect(server: NetconfServerEntry) {
-        const connectionEntry = new NetconfConnectionEntry(server.serverInfo);
+        const connectionEntry = new NetconfConnectionEntry(server.serverInfo, '(managed)');
         this.connections.push(connectionEntry);
 
         connectionEntry.onDidChange(() => {
@@ -224,14 +264,14 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
             ]);
 
             const serverInfo : ConnectInfo = {
-                id: `${node.label} | ${user}@${host} | ${node.kind}`,
-                host: host,
+                id: node.label.split('-').splice(1).join('/'),
+                host: node.label,
                 username: user,
                 port: port,
                 clientCapabilities: caps
             };
 
-            const connectionEntry = new NetconfConnectionEntry(serverInfo);
+            const connectionEntry = new NetconfConnectionEntry(serverInfo, `(containerlab: ${node.kind})`);
             this.connections.push(connectionEntry);
     
             connectionEntry.onDidChange(() => {
@@ -239,9 +279,7 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
                 this.refresh();
             });
         } else {
-            const logs = new ExtensionLogger(`netconf | clab`);
-            logs.info('clab connect: ', JSON.stringify(node));
-			logs.warn("Information from containerlab is not yet available! Need to wait...");
+			log.warn("Information from containerlab is not yet available! Need to wait...");
             vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
         }
     }
@@ -285,7 +323,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
     private showCandidate : boolean;
     private isLocked : boolean;
 
-    private startTS : number;
+    private established : string;
     private isBusy : boolean;
     private bytesReceived : number;
     private events : string[];
@@ -294,8 +332,13 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
     private eventStatus: vscode.StatusBarItem | undefined;
 
 
-    constructor(server : ConnectInfo) {
+    constructor(server : ConnectInfo, extraInfo? : string) {
         super(server.id, vscode.TreeItemCollapsibleState.None);
+
+        if (extraInfo)
+            this.description = extraInfo;
+        else
+            this.description = "";
 
         this.host = server.host ?? "unknown";
         this.user = server.username ?? "unknown";
@@ -309,10 +352,12 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         this.isBusy = false;
 
         this.bytesReceived = 0;
-        this.startTS = Date.now();
+        this.established = new Intl.DateTimeFormat('en-US', {year: "numeric", month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short'}).format(Date.now());
+        
+        Date.now();
         this.events = [];
 
-        this.logs = new ExtensionLogger(`netconf | ${server.host}`);
+        this.logs = new ExtensionLogger(`netconf | ${server.id}`);
         this.client = new ncclient(this.logs);
 
         this.logs.info(`Connecting to ${this.user}@${this.host}...`);
@@ -333,7 +378,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         });
 
         this.client.on('connected', (hello: string, caplist: string[], sessionId: Number) => {
-            vscode.window.showInformationMessage(`Connection established! Session-id: ${sessionId} | NETCONF server capabilities: ${caplist.join(' ')}`, 'Open', 'Cancel').then( async (action) => {
+            vscode.window.showInformationMessage(`Session-id: ${sessionId} | NETCONF server capabilities: ${caplist.join(' ')}`, 'Open', 'Cancel').then( async (action) => {
                 if ('Open' === action) showXmlDocument(hello);
             });
 
@@ -349,6 +394,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             }
 
             this.sessionId = sessionId;
+            this.description = `#${sessionId} ${this.description}`
 
             this.refresh();
         });
@@ -444,33 +490,36 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         const keysFile : string | undefined = vscode.workspace.getConfiguration('netconf').get('keysFile') || undefined;
         const sshdebug : boolean = vscode.workspace.getConfiguration('netconf').get('sshDebug') || false;
 
-        if (!server.username)
-            server.username = vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin");
+        const config = { ...server };
 
-        if (!server.port)
-            server.port = vscode.workspace.getConfiguration("netconf").get("defaultPort", 830);
+        if (!config.username)
+            config.username = vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin");
 
-        if (!server.clientCapabilities || server.clientCapabilities.length === 0)
-            server.clientCapabilities = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
+        if (!config.port)
+            config.port = vscode.workspace.getConfiguration("netconf").get("defaultPort", 830);
+
+        if (!config.clientCapabilities || config.clientCapabilities.length === 0)
+            config.clientCapabilities = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
                 "urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"
             ]);
 
-        this.client.connect(server, keysFile, server.clientCapabilities, sshdebug, this.queryUserPassword);
+        this.client.connect(config, keysFile, server.clientCapabilities, sshdebug, this.queryUserPassword);
     }
 
     spotlight(enable: boolean): void {
         if (enable) {
             if (!this.netcfgStatus) {
-                this.netcfgStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 175);
+                this.netcfgStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 177);
                 this.netcfgStatus.text = `$(terminal)`;
                 this.netcfgStatus.command = 'netconf.rpc';
-                this.netcfgStatus.tooltip = `send rpc to ${this.host}`;
+                this.netcfgStatus.tooltip = `Send custom <rpc> to ${this.host}`;
                 this.netcfgStatus.show();
             }
             if (!this.eventStatus) {
-                this.eventStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 177);
+                this.eventStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 175);
                 this.eventStatus.text = `$(terminal)`;
                 this.eventStatus.command = 'netconf.getEvents';
+                this.eventStatus.tooltip = `Event notifications from ${this.host}`;
                 this.eventStatus.show();
             }
         } else {
@@ -493,12 +542,14 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             const lines:String[] = [];
             const received = this.bytesReceived < 10_000_000 ? (this.bytesReceived>>10)+'KB' : (this.bytesReceived>>20)+'MB';
             const events = this.events.length;
-
+    
             lines.push(`**Session:** ${this.label} #${this.sessionId}`);
             lines.push(`**target:** ${this.user}@${this.host}`)
-            lines.push(`**active:** ${(Date.now()-this.startTS)/1000 |0} seconds`);
+            lines.push(`**established:** ${this.established}`);
             lines.push(`**received:** ${received}`);
-            lines.push(`**events:** ${events}`);
+
+            if (events)
+                lines.push(`**buffered notifications:** ${events}`);
 
             this.tooltip = new vscode.MarkdownString(lines.join('\n\n'), true);
             this.contextValue = this.computeContextValue();
@@ -558,12 +609,17 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
     }
 
 	async getEvents() {
-		if (this.events.length > 1)
-			showXmlDocument(`<?xml version="1.0" encoding="UTF-8"?>\n<notifications>\n${this.events.join('\n\n')}\n</notifications>`);
-		else if (this.events.length > 0)
-			showXmlDocument(`<?xml version="1.0" encoding="UTF-8"?>\n${this.events.join('\n\n')}`);
+        if (this.events.length === 0) {
+            vscode.window.showWarningMessage(`No more event notification from ${this.host}!`);
+            return;
+        }
 
-		this.events = [];
+		if (this.events.length > 1) {
+            const events = this.events.map(event => event.split('\n').map(line => `  ${line}`).join('\n')).join('\n\n');
+            showXmlDocument(`<?xml version="1.0" encoding="UTF-8"?>\n<notifications>\n${events}\n</notifications>`);
+            this.events = [];
+        } else showXmlDocument(`<?xml version="1.0" encoding="UTF-8"?>\n${this.events.pop()}`);
+        
         this.refresh();
 	}
 
@@ -624,9 +680,6 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
     }
 }
 
-let updateBadge: (badge: vscode.ViewBadge | undefined ) => void;
-let selection : NetconfConnectionEntry | undefined;
-
 export function activate(context: vscode.ExtensionContext) {
 	const ncsp = new NetconfServerProvider();
 	vscode.window.registerTreeDataProvider('netconfServers', ncsp);
@@ -652,19 +705,65 @@ export function activate(context: vscode.ExtensionContext) {
 	// --- server commands --------------------------------------------------
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.add',    () => ncsp.addServer()));
-	context.subscriptions.push(vscode.commands.registerCommand('netconf.remove', ncsp.removeServer.bind(ncsp)));
-    context.subscriptions.push(vscode.commands.registerCommand('netconf.update', () => {
-        if (vscode.env.remoteName)
-            vscode.commands.executeCommand('workbench.action.openRemoteSettings', 'netconf.serverList');
-        else
-            vscode.commands.executeCommand('workbench.action.openSettings', 'netconf.serverList');
 
-        // For future consideration (going straight to JSON config):
-        //
-        // if (vscode.env.remoteName)
-        //     vscode.commands.executeCommand('workbench.action.openRemoteSettingsFile');
-        // else
-        //     vscode.commands.executeCommand('workbench.action.openSettingsJson');
+	context.subscriptions.push(vscode.commands.registerCommand('netconf.remove', async (server: NetconfServerEntry) => {
+        if (server?.label) {
+            let servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+            servers = servers.filter(entry => entry.id !== server.label);
+
+            try {
+                await vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
+            }
+            catch (e) {
+                const errmsg = (e instanceof Error ? e.message : String(e)).replace(/^[A-Z0-9]+:/, '').trim();
+                vscode.window.showErrorMessage(errmsg);
+                log.error(errmsg);
+            }
+        }
+    }));
+
+	context.subscriptions.push(vscode.commands.registerCommand('netconf.clone', async (server: NetconfServerEntry) => {
+        if (server?.label) {
+            let servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+
+            let id: string | undefined;
+            do {
+                id = await vscode.window.showInputBox({
+                    title: `Clone managed device entry ${server.label}`,
+                    prompt: 'Enter user-friendly name for connection',
+                    placeHolder: server.serverInfo.id
+                });
+                if (!id) return;
+                if (servers.some(e => e.id === id))
+                    vscode.window.showErrorMessage('Entry already exists! Provide unique name!');
+            } while (servers.some(e => e.id === id));
+
+            const host = await vscode.window.showInputBox({
+                title: `Clone managed device entry ${server.label}`,
+                prompt: 'Enter IP address or hostname',
+                value: server.serverInfo.host
+            });
+            if (!host) return;
+
+            let newEntry : ConnectInfo = { ...server.serverInfo };
+            newEntry.id = id;
+            newEntry.host = host;
+            servers.push(newEntry);
+
+            try {
+                await vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
+            }
+            catch (e) {
+                const errmsg = (e instanceof Error ? e.message : String(e)).replace(/^[A-Z0-9]+:/, '').trim();
+                vscode.window.showErrorMessage(errmsg);
+                log.error(errmsg);
+            }
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('netconf.update', async (server: NetconfServerEntry) => {
+        if (server?.label)
+            openSettingsEntry('netconf.serverList', 'id', server.label.toString());
     }));
 
     // --- example command --------------------------------------------------

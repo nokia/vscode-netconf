@@ -2,7 +2,7 @@
 	"name": "netconf-client",
 	"displayName": "NETCONF client for Visual Studio Code",
 	"description": "NETCONF client by Nokia",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"author": {
 		"name": "Sven Wisotzky",
 		"url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -48,7 +48,7 @@
 			"activitybar": [
 			  {
 				"id": "netconf",
-				"title": "NETCONF",
+				"title": "NETCONF EXPLORER",
 				"icon": "resources/dark/netconf.svg"
 			  }
 			]
@@ -57,7 +57,7 @@
 			"netconf": [
 			  {
 				"id": "netconfServers",
-				"name": "SERVERS"
+				"name": "NETWORK DEVICES"
 			  },
 			  {
 				"id": "netconfConnections",
@@ -68,17 +68,22 @@
 		"commands": [
 			{
 				"command": "netconf.add",
-				"title": "add netconf server",
+				"title": "add managed device",
 				"icon": "$(plus)"
 			},
 			{
+				"command": "netconf.clone",
+				"title": "clone managed device",
+				"icon": "$(copy)"
+			},
+			{
 				"command": "netconf.update",
-				"title": "edit netconf server-list",
+				"title": "update managed device",
 				"icon": "$(settings)"
 			},
 			{
 				"command": "netconf.remove",
-				"title": "remove netconf server",
+				"title": "remove managed device",
 				"icon": "$(trash)"
 			},
 			{
@@ -89,26 +94,23 @@
 			{
 				"command": "netconf.connect",
 				"category": "netconf",
-				"title": "connect",
+				"title": "connect to device",
 				"icon": "$(vm-connect)"
 			},
 			{
 				"command": "netconf.clabConnect",
-				"title": "Connect to NETCONF",
-				"icon": {
-					"light": "resources/light/netconf.svg",
-					"dark": "resources/dark/netconf.svg"
-				}
+				"title": "NETCONF: connect",
+				"icon": "$(vm-connect)"
 			},
 			{
 				"command": "netconf.clabAddHost",
-				"title": "Add as NETCONF host",
+				"title": "NETCONF: add managed device",
 				"icon": "$(plus)"
 			},
 			{
 				"command": "netconf.rpc",
 				"category": "netconf",
-				"title": "Send content of active editor",
+				"title": "Send custom <rpc>",
 				"icon": "$(send)"
 			},
 			{
@@ -148,7 +150,7 @@
 			},
 			{
 				"command": "netconf.getEvents",
-				"title": "Get events in new editor",
+				"title": "Event notifications",
 				"icon": "$(comment)"
 			},
 			{
@@ -158,7 +160,7 @@
 			},
 			{
 				"command": "netconf.disconnect",
-				"title": "Disconnect session",
+				"title": "Disconnect",
 				"icon": "$(close)"
 			}
 		],
@@ -176,11 +178,6 @@
 				  "group": "navigation"
 				},
 				{
-					"command": "netconf.update",
-					"when": "view == netconfServers",
-					"group": "navigation"
-				},
-				{
 					"command": "netconf.examples",
 					"when": "view == netconfServers",
 					"group": "navigation"
@@ -196,11 +193,6 @@
 					"command": "netconf.connect",
 					"when": "view == netconfServers",
 					"group": "inline@1"
-				},
-				{
-					"command": "netconf.remove",
-					"when": "view == netconfServers",
-					"group": "inline@2"
 				},
 				{
 					"command": "netconf.subscribe",
@@ -270,67 +262,77 @@
 				{
 					"command": "netconf.connect",
 					"when": "view == netconfServers",
-					"group": "navigation@1"
+					"group": "connect"
+				},
+				{
+					"command": "netconf.clone",
+					"when": "view == netconfServers",
+					"group": "edit"
+				},
+				{
+					"command": "netconf.update",
+					"when": "view == netconfServers",
+					"group": "edit"
 				},
 				{
 					"command": "netconf.remove",
 					"when": "view == netconfServers",
-					"group": "navigation@2"
-				},
-				{
-					"command": "netconf.disconnect",
-					"when": "view == netconfConnections",
-					"group": "navigation@1"
+					"group": "remove"
 				},
 				{
 					"command": "netconf.rpc",
 					"when": "view == netconfConnections",
-					"group": "navigation@2"
+					"group": "netconfCustom"
 				},
 				{
-					"command": "netconf.subscribe",
-					"when": "view == netconfConnections && viewItem =~ /showSubscribe/",
-					"group": "navigation@3"
-				},
-				{
-					"command": "netconf.getEvents",
-					"when": "view == netconfConnections && viewItem =~ /events/",
-					"group": "navigation@4"
+					"command": "netconf.disconnect",
+					"when": "view == netconfConnections",
+					"group": "netconfDisconnect"
 				},
 				{
 					"command": "netconf.get",
 					"when": "view == netconfConnections",
-					"group": "navigation@5"
+					"group": "netconfCommon@2"
 				},
 				{
 					"command": "netconf.getConfig",
 					"when": "view == netconfConnections",
-					"group": "navigation@6"
+					"group": "netconfCommon@3"
+				},
+				{
+					"command": "netconf.subscribe",
+					"when": "view == netconfConnections && viewItem =~ /showSubscribe/",
+					"group": "netconfEvents@1"
+				},
+				{
+					"command": "netconf.getEvents",
+					"when": "view == netconfConnections && viewItem =~ /events/",
+					"group": "netconfEvents@2"
 				},
 				{
 					"command": "netconf.lock",
 					"when": "view == netconfConnections && viewItem =~ /unlocked/",
-					"group": "navigation@7"
+					"group": "netconfCandidate@1"
 				},
 				{
 					"command": "netconf.unlock",
 					"when": "view == netconfConnections && viewItem =~ /locked/",
-					"group": "navigation@8"
+					"group": "netconfCandidate@2"
 				},
 				{
 					"command": "netconf.validate",
 					"when": "view == netconfConnections && viewItem =~ /showCandidate/",
-					"group": "navigation@9"
+					"group": "netconfCandidate@3"
 				},
 				{
 					"command": "netconf.discard",
 					"when": "view == netconfConnections && viewItem =~ /showCandidate/",
-					"group": "navigation@10"
+					"group": "netconfCandidate@4"
 				},
 				{
 					"command": "netconf.commit",
 					"when": "view == netconfConnections  && viewItem =~ /showCandidate/",
-					"group": "navigation@11"
+					"group": "netconfCandidate@5"
 				}
 			]
 		},

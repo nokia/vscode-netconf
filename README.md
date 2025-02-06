@@ -200,6 +200,27 @@ We've captured the following feature candidates for future evolution:
 
   Graphical compare of running vs candidate datastores.
 
+* **Password Storage**
+
+  Store device passwords using vsCode secrets.
+
+* **Connection Profiles**
+
+  Avoid to enter the same set of connection properties over and over again.
+  Instead, inherit settings from profiles, centrally being managed.
+
+* **Logging improvements**
+
+  Create dedicated logs per session-id.
+  Housekeeping for old output channels w/o reloading vsCode windows (dispose).
+
+* **Refactor: ConnectionFactory**
+
+  Decoupling WebUI implementation (NetconfConnectionProvider, NetconfConnectionEntry) from
+  actual netconf connections. Ensure that only active/running sessions are displayed in
+  the WebUI.
+
+
 Contributions are welcome, to help improving the usability of `vscode-netconf`.
 
 ## Changes
@@ -241,6 +262,16 @@ Contributions are welcome, to help improving the usability of `vscode-netconf`.
   Note: Dedicated OUTPUT channels are used per server
 - Adhoc NETCONF connections from containerlab extension
 - Ask user for password, if authentication has failed
+
+### Release 2.1.0
+- Use hostname for containerlab (instead of IP)
+- Names for output channels (logging) using id (instead of hostname/IP)
+- Provide password for new connections
+- Taxonomy consistency: managed devices
+- Connections are displayed with session-id
+- Option to clone managed device entries
+- Various error-handling improvements
+- Update entries w/ cross-navigation to settings json
 
 ## License
 
