@@ -66,4 +66,8 @@ export class ExtensionLogger implements Logger {
         else
             this.logs.error(message, ...attributes);
     }
+
+    show(): void {
+        this.logs.show();
+    }
 }

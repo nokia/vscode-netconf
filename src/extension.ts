@@ -294,9 +294,12 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
     get       (connection: NetconfConnectionEntry) { connection.get();        }
     subscribe (connection: NetconfConnectionEntry) { connection.subscribe();  }
 
-    rpc(connection?: NetconfConnectionEntry) {
-        if (connection) connection.rpc();
+    async rpc(...args : any[]) {
+        if (args[0] instanceof NetconfConnectionEntry) {
+            args[0].rpc();
+        }
         else if (selection) selection.rpc();
+        else vscode.window.showWarningMessage('Select connection in side-bar to send custom <rpc>');
     }
 
     getEvents(connection?: NetconfConnectionEntry) {
@@ -508,6 +511,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
     spotlight(enable: boolean): void {
         if (enable) {
+            this.logs.show();
             if (!this.netcfgStatus) {
                 this.netcfgStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 177);
                 this.netcfgStatus.text = `$(terminal)`;
@@ -691,8 +695,10 @@ export function activate(context: vscode.ExtensionContext) {
     selection = undefined;
     treeView.onDidChangeSelection(event => {
         const newSelection = event.selection[0] as NetconfConnectionEntry || undefined;
-        if (selection && selection !== newSelection)
+        if (selection && selection !== newSelection) {
             selection.spotlight(false);
+            selection = undefined;
+        }
 
         if (newSelection) {
             selection = newSelection;

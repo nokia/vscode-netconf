@@ -19,7 +19,7 @@ export type passwordCallback = (host: string, username: string) => Thenable<stri
 
 export class ncclient extends EventEmitter {
 	client: ssh2.Client;
-	rawbuf: string;
+	rawbuf: Buffer;
 	msgbuf: string;
 	bytes: number;
 	ncs: any;
@@ -43,7 +43,7 @@ export class ncclient extends EventEmitter {
 		else
 			this.logger = new ConsoleLogger();
 
-		this.rawbuf = "";
+		this.rawbuf = Buffer.alloc(0);
 		this.msgbuf = "";
 		this.bytes = 0;
 		this.ncs = undefined;
@@ -96,7 +96,7 @@ export class ncclient extends EventEmitter {
 			if (this.connected) {
 				this.connected = false;
 				// this.logger.setContext(undefined);
-				this.rawbuf = "";
+				this.rawbuf = Buffer.alloc(0);
 				this.msgbuf = "";
 				this.bytes = 0;
 				this.ncs = null;
@@ -148,7 +148,7 @@ export class ncclient extends EventEmitter {
 		const validationResult = XMLValidator.validate(msg);
 		if (validationResult !== true) {
 			const errmsg = `Malformed response, ${validationResult.err.code}, Details: ${validationResult.err.msg}`;
-			this.logger.error('NETCONF ERROR', `${errmsg}\n${msg}`);
+			// this.logger.error('NETCONF ERROR', `${errmsg}\n${msg}`);
 			return this.emit('netconfError', errmsg, msg);
 		}
 
@@ -276,64 +276,47 @@ export class ncclient extends EventEmitter {
 		}
 	}
 
-	private _dataHandler(data: any) {
-		let chunk = data.toString('utf-8');
-
-		// convert multi-byte unicode back to utf-8 single byte characters
-		chunk = chunk.replace(/[\u00e0-\u00ef][\u0080-\u00bf][\u0080-\u00bf]/g, function(c: { charCodeAt: (arg0: number) => number; }) {
-			// convert 3 byte characters
-			const cc = ((c.charCodeAt(0) & 0x0f) << 12) | ((c.charCodeAt(1) & 0x3f) << 6) | (c.charCodeAt(2) & 0x3f);
-			return String.fromCharCode(cc);
-		}).replace(/[\u00c0-\u00df][\u0080-\u00bf]/g, function(c: { charCodeAt: (arg0: number) => number; }) {
-			// convert 2 byte characters
-			const cc = ((c.charCodeAt(0) & 0x1f) << 6) | (c.charCodeAt(1) & 0x3f);
-			return String.fromCharCode(cc);
-		});
-
-		this.rawbuf += chunk;
-		this.bytes += chunk.length;
+	private _dataHandler(data: Buffer) {
+		this.rawbuf = Buffer.concat([this.rawbuf, data]);
+		this.bytes += data.length;
 		this.emit('data', this.bytes);
 
 		if (this.base11Framing) {
-			let pos = 0;
-			while ((pos+3)<this.rawbuf.length) {
-			  if (this.rawbuf.slice(pos, pos+4) === "\n##\n") {
-				if (this.msgbuf.length>0) {
-				  this._msgHandler(this.msgbuf);
-				  this.msgbuf = "";
-				}
-				pos = pos+4;
-			  } else if (this.rawbuf.slice(pos, pos+2) === "\n#") {
-				const idx = this.rawbuf.indexOf("\n", pos+2);
-				if (idx!==-1) {
-				  const bytes = Number(this.rawbuf.slice(pos+2, idx));
-				  if ((idx+1+bytes) <= this.rawbuf.length) {
-					this.msgbuf += this.rawbuf.slice(idx+1, idx+1+bytes);
-					pos = idx+1+bytes;
-				  } else {
-					break;  // need to wait for more bytes to come
-				  }
+			while (true) {
+				const pos = this.rawbuf.indexOf('\n', 1, 'utf-8');
+				const bufsize = this.rawbuf.length;
+
+				if (pos > 0) {
+					const line1 = this.rawbuf.toString('utf-8', 0, pos+1);
+					if (line1 === '\n##\n') {
+						if (this.msgbuf.length > 0)
+							this._msgHandler(this.msgbuf);
+						this.rawbuf = this.rawbuf.subarray(4);
+						this.msgbuf = "";
+					} else if (/\n#\d+\n/.test(line1)) {
+						const chunkSize = parseInt(this.rawbuf.toString('utf-8', 2, pos));
+						if (pos + chunkSize < this.rawbuf.length) {
+							this.msgbuf += this.rawbuf.toString('utf-8', pos+1, pos+1+chunkSize);
+							this.rawbuf = this.rawbuf.subarray(pos+1+chunkSize);
+						} else {
+							break;  // need to wait for more bytes to come
+						}
+					} else {
+						this.emit('error', 'BASE_1_1 FRAME ERROR', 'chunk start not found');
+						this.rawbuf = Buffer.alloc(0);
+						this.msgbuf = "";
+					}
 				} else {
-				  break;    // need to wait for more bytes to come
+					break;  // need to wait for more bytes to come
 				}
-			  } else {
-				this.rawbuf = "";
-				this.msgbuf = "";
-				pos = 0;
-				this.emit('error', 'BASE_1_1 FRAME ERROR', 'chunk start not found');
-				return;
-			  }
-			}
-			if (pos>0) {
-			  // skip parts next time which are already copied to msgbuf
-			  this.rawbuf = this.rawbuf.slice(pos);
 			}
 		} else {
-			if (this.rawbuf.match("]]>]]>")) {
-				const msgs = this.rawbuf.split("]]>]]>");
-				this.rawbuf = msgs.pop() || "";
-				for (const [idx, msg] of msgs.entries()) this._msgHandler(msg);
-			}	
+			const pos = this.rawbuf.lastIndexOf(']]>]]>');
+			if (pos > 0) {
+				const msgs = this.rawbuf.toString('utf8', 0, pos).split("]]>]]>");
+				msgs.forEach(msg => this._msgHandler(msg));
+				this.rawbuf = this.rawbuf.subarray(pos+6);
+			}
 		}
 	}
 
@@ -400,12 +383,13 @@ export class ncclient extends EventEmitter {
 		setTimeout((() => this._msgTimeout(msgid)), timeout*1000);
 		this.emit('busy');
 
+		const rawbuf = Buffer.from(request, 'utf-8');
 		if (this.base11Framing) {
-			this.ncs.write(`\n#${request.length}\n`);
-			this.ncs.write(request);
+			this.ncs.write(`\n#${rawbuf.length}\n`);
+			this.ncs.write(rawbuf);
 			this.ncs.write('\n##\n');
 		} else {
-			this.ncs.write(request);
+			this.ncs.write(rawbuf);
 			this.ncs.write("]]>]]>");
 		}
 	}
@@ -493,7 +477,7 @@ export class ncclient extends EventEmitter {
 		}
 
 		// Enable Debugging
-		if (sshdebug) config.debug = this._sshDebug;
+		if (sshdebug) config.debug = this._sshDebug.bind(this);
 
 		// Set Hello Capabilities for NETCONF Client
 		if (clientCapabilities)

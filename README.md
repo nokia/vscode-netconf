@@ -273,6 +273,12 @@ Contributions are welcome, to help improving the usability of `vscode-netconf`.
 - Various error-handling improvements
 - Update entries w/ cross-navigation to settings json
 
+### Release 2.1.1
+- UTF-8 support w/ chunked framing
+- Support for ssh-transport logging
+- Send custom <rpc> works again from `editor/title/run`
+- Corresponding output channel opens automatically when selecting a connection (spotlight)
+
 ## License
 
 This project is licensed under the BSD 3-Clause license - see the
