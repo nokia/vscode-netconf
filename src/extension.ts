@@ -294,12 +294,51 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
     get       (connection: NetconfConnectionEntry) { connection.get();        }
     subscribe (connection: NetconfConnectionEntry) { connection.subscribe();  }
 
-    async rpc(...args : any[]) {
-        if (args[0] instanceof NetconfConnectionEntry) {
-            args[0].rpc();
+    async rpc(context? : NetconfConnectionEntry | vscode.Uri) {
+        if (context instanceof NetconfConnectionEntry) {
+            // triggered from: view/item/context (treeView: NetconfConnectionEntry)
+            const editor = vscode.window.activeTextEditor;
+            if (editor?.document && editor.document.languageId === "xml")
+                context.rpc(editor.document.getText());
+            else {
+                const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+                if (input !== null &&  typeof input === "object" && "uri" in input) {
+                        const uri = input.uri;
+                        if (uri instanceof vscode.Uri) {
+                            const document = await vscode.workspace.openTextDocument(uri);
+                            if (document.languageId === "xml")
+                                context.rpc(document.getText());
+                            else
+                                vscode.window.showWarningMessage('Select a XML document containing custom <rpc>');
+                        } 
+                    }
+                }
         }
-        else if (selection) selection.rpc();
-        else vscode.window.showWarningMessage('Select connection in side-bar to send custom <rpc>');
+        else if (selection) {
+            if (context) {
+                // triggered from: editor/title/run
+                const document = await vscode.workspace.openTextDocument(context);
+                selection.rpc(document.getText());
+            } else {
+                // triggered from: statusBar
+                const editor = vscode.window.activeTextEditor;
+                if (editor?.document && editor.document.languageId === "xml")
+                    selection.rpc(editor.document.getText());
+                else {
+                    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+                    if (input !== null &&  typeof input === "object" && "uri" in input) {
+                        const uri = input.uri;
+                        if (uri instanceof vscode.Uri) {
+                            const document = await vscode.workspace.openTextDocument(uri);
+                            if (document.languageId === "xml")
+                                selection.rpc(document.getText());
+                            else
+                                vscode.window.showWarningMessage('Select a XML document containing custom <rpc>');
+                        }
+                    }
+                }
+            }
+        } else vscode.window.showWarningMessage('Select netconf connection in side-bar to send custom <rpc>');
     }
 
     getEvents(connection?: NetconfConnectionEntry) {
@@ -576,12 +615,10 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         this.client.disconnect();
     }
 
-	async rpc() {
-		const editor = vscode.window.activeTextEditor;
-		if (editor?.document)
-			this.client?.rpc(editor.document.getText(), 300, (msgid : string, msg : string) => {
-				this.logs.debug(`rpc #${msgid} done`);
-			});
+	async rpc(request : string) {
+        this.client?.rpc(request, 300, (msgid : string, msg : string) => {
+            this.logs.debug(`rpc #${msgid} done`);
+        });
 	}
     
 	async get() {

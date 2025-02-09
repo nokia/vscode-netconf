@@ -1,477 +1,477 @@
 {
-	"name": "netconf-client",
-	"displayName": "NETCONF client for Visual Studio Code",
-	"description": "NETCONF client by Nokia",
-	"version": "2.1.1",
-	"author": {
-		"name": "Sven Wisotzky",
-		"url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
-	},
-	"publisher": "NOKIA",
-	"icon": "resources/vscode-netconf.png",
-	"contributors": [
-		{
-			"name": "Sven Wisotzky"
-		}
-	],
-	"keywords": [
-		"NETCONF",
-		"SSH",
-		"Interactive",
-		"XML",
-		"Nokia"
-	],
-	"extensionKind": [
-		"workspace"
-	],
-	"license": "BSD 3-Clause",
-	"galleryBanner": {
-		"color": "#005AFF",
-		"theme": "dark"
-	},
-	"engines": {
-		"vscode": "^1.76.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onStartupFinished"
-	],
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/nokia/vscode-netconf"
-	},
-	"main": "./out/extension.js",
-	"contributes": {
-		"viewsContainers": {
-			"activitybar": [
-			  {
-				"id": "netconf",
-				"title": "NETCONF EXPLORER",
-				"icon": "resources/dark/netconf.svg"
-			  }
-			]
-		},
-		"views": {
-			"netconf": [
-			  {
-				"id": "netconfServers",
-				"name": "NETWORK DEVICES"
-			  },
-			  {
-				"id": "netconfConnections",
-				"name": "CONNECTIONS"
-			  }
-			]
-		},
-		"commands": [
-			{
-				"command": "netconf.add",
-				"title": "add managed device",
-				"icon": "$(plus)"
-			},
-			{
-				"command": "netconf.clone",
-				"title": "clone managed device",
-				"icon": "$(copy)"
-			},
-			{
-				"command": "netconf.update",
-				"title": "update managed device",
-				"icon": "$(settings)"
-			},
-			{
-				"command": "netconf.remove",
-				"title": "remove managed device",
-				"icon": "$(trash)"
-			},
-			{
-				"command": "netconf.examples",
-				"title": "add netconf examples to workspace",
-				"icon": "$(cloud-download)"
-			},
-			{
-				"command": "netconf.connect",
-				"category": "netconf",
-				"title": "connect to device",
-				"icon": "$(vm-connect)"
-			},
-			{
-				"command": "netconf.clabConnect",
-				"title": "NETCONF: connect",
-				"icon": "$(vm-connect)"
-			},
-			{
-				"command": "netconf.clabAddHost",
-				"title": "NETCONF: add managed device",
-				"icon": "$(plus)"
-			},
-			{
-				"command": "netconf.rpc",
-				"category": "netconf",
-				"title": "Send custom <rpc>",
-				"icon": "$(send)"
-			},
-			{
-				"command": "netconf.commit",
-				"title": "Send <commit>",
-				"icon": "$(pass)"
-			},
-			{
-				"command": "netconf.discard",
-				"title": "Send <discard>",
-				"icon": "$(discard)"
-			},
-			{
-				"command": "netconf.validate",
-				"title": "Send <validate>",
-				"icon": "$(check-all)"
-			},
-			{
-				"command": "netconf.unlock",
-				"title": "Send <unlock>",
-				"icon": "$(lock)"
-			},
-			{
-				"command": "netconf.lock",
-				"title": "Send <lock>",
-				"icon": "$(unlock)"
-			},
-			{
-				"command": "netconf.getConfig",
-				"title": "Send <get-config>",
-				"icon": "$(file-code)"
-			},
-			{
-				"command": "netconf.get",
-				"title": "Send <get>",
-				"icon": "$(file-binary)"
-			},
-			{
-				"command": "netconf.getEvents",
-				"title": "Event notifications",
-				"icon": "$(comment)"
-			},
-			{
-				"command": "netconf.subscribe",
-				"title": "Send <subscribe>",
-				"icon": "$(comment-discussion)"
-			},
-			{
-				"command": "netconf.disconnect",
-				"title": "Disconnect",
-				"icon": "$(close)"
-			}
-		],
-		"menus": {
-			"editor/title/run": [
-				{
-					"when": "resourceLangId == xml",
-					"command": "netconf.rpc"
-				}
-			],
-			"view/title": [
-				{
-				  "command": "netconf.add",
-				  "when": "view == netconfServers",
-				  "group": "navigation"
-				},
-				{
-					"command": "netconf.examples",
-					"when": "view == netconfServers",
-					"group": "navigation"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "netconf.clabConnect",
-					"when": "viewItem == containerlabContainer",
-					"group": "inline"
-				},
-				{
-					"command": "netconf.connect",
-					"when": "view == netconfServers",
-					"group": "inline@1"
-				},
-				{
-					"command": "netconf.subscribe",
-					"when": "view == netconfConnections && viewItem =~ /showSubscribe/",
-					"group": "inline@1"
-				},
-				{
-					"command": "netconf.getEvents",
-					"when": "view == netconfConnections && viewItem =~ /events/",
-					"group": "inline@2"
-				},
-				{
-					"command": "netconf.get",
-					"when": "view == netconfConnections",
-					"group": "inline@3"
-				},
-				{
-					"command": "netconf.getConfig",
-					"when": "view == netconfConnections",
-					"group": "inline@4"
-				},
-				{
-					"command": "netconf.lock",
-					"when": "view == netconfConnections && viewItem =~ /open/",
-					"group": "inline@6"
-				},
-				{
-					"command": "netconf.unlock",
-					"when": "view == netconfConnections && viewItem =~ /locked/",
-					"group": "inline@7"
-				},
-				{
-					"command": "netconf.validate",
-					"when": "view == netconfConnections && viewItem =~ /showCandidate/",
-					"group": "inline@8"
-				},
-				{
-					"command": "netconf.discard",
-					"when": "view == netconfConnections && viewItem =~ /showCandidate/",
-					"group": "inline@9"
-				},
-				{
-					"command": "netconf.commit",
-					"when": "view == netconfConnections  && viewItem =~ /showCandidate/",
-					"group": "inline@10"
-				},
-				{
-					"command": "netconf.rpc",
-					"when": "view == netconfConnections",
-					"group": "inline@11"
-				},
-				{
-					"command": "netconf.disconnect",
-					"when": "view == netconfConnections",
-					"group": "inline@12"
-				},
-				{
-					"command": "netconf.clabAddHost",
-					"when": "viewItem == containerlabContainer",
-					"group": "netconfNavigation@0"
-				},
-				{
-					"command": "netconf.clabConnect",
-					"when": "viewItem == containerlabContainer",
-					"group": "netconfNavigation@1"
-				},
-				{
-					"command": "netconf.connect",
-					"when": "view == netconfServers",
-					"group": "connect"
-				},
-				{
-					"command": "netconf.clone",
-					"when": "view == netconfServers",
-					"group": "edit"
-				},
-				{
-					"command": "netconf.update",
-					"when": "view == netconfServers",
-					"group": "edit"
-				},
-				{
-					"command": "netconf.remove",
-					"when": "view == netconfServers",
-					"group": "remove"
-				},
-				{
-					"command": "netconf.rpc",
-					"when": "view == netconfConnections",
-					"group": "netconfCustom"
-				},
-				{
-					"command": "netconf.disconnect",
-					"when": "view == netconfConnections",
-					"group": "netconfDisconnect"
-				},
-				{
-					"command": "netconf.get",
-					"when": "view == netconfConnections",
-					"group": "netconfCommon@2"
-				},
-				{
-					"command": "netconf.getConfig",
-					"when": "view == netconfConnections",
-					"group": "netconfCommon@3"
-				},
-				{
-					"command": "netconf.subscribe",
-					"when": "view == netconfConnections && viewItem =~ /showSubscribe/",
-					"group": "netconfEvents@1"
-				},
-				{
-					"command": "netconf.getEvents",
-					"when": "view == netconfConnections && viewItem =~ /events/",
-					"group": "netconfEvents@2"
-				},
-				{
-					"command": "netconf.lock",
-					"when": "view == netconfConnections && viewItem =~ /unlocked/",
-					"group": "netconfCandidate@1"
-				},
-				{
-					"command": "netconf.unlock",
-					"when": "view == netconfConnections && viewItem =~ /locked/",
-					"group": "netconfCandidate@2"
-				},
-				{
-					"command": "netconf.validate",
-					"when": "view == netconfConnections && viewItem =~ /showCandidate/",
-					"group": "netconfCandidate@3"
-				},
-				{
-					"command": "netconf.discard",
-					"when": "view == netconfConnections && viewItem =~ /showCandidate/",
-					"group": "netconfCandidate@4"
-				},
-				{
-					"command": "netconf.commit",
-					"when": "view == netconfConnections  && viewItem =~ /showCandidate/",
-					"group": "netconfCandidate@5"
-				}
-			]
-		},
-		"configuration": {
-			"title": "NETCONF client",
-			"properties": {
-				"netconf.serverList": {
-					"title": "NETCONF servers",
-					"markdownDescription": "NETCONF servers",
-					"scope": "window",
-					"type": "array",
-					"items": {
-						"type": "object",
-						"description": "NETCONF server entry",
-						"properties": {
-							"id": {
-								"type": "string",
-								"uniqueItems": true
-							},
-							"host": {
-								"description": "Hostname or IP address of the NETCONF server",
-								"type": "string"
-							},
-							"port": {
-								"type": "number",
-								"default": 830
-							},
-							"username": {
-								"type": "string",
-								"default": "admin"
-							},
-							"password": {
-								"type": "string",
-								"default": "admin"
-							},
-							"clientCapabilities": {
-								"description": "Client capabilities used in <hello/> message",
-								"type": "array",
-								"items": {
-									"type": "string"
-								},
-								"default": [
-									"urn:ietf:params:netconf:base:1.0",
-									"urn:ietf:params:netconf:base:1.1"
-								]
-							},
-							"keepaliveInterval": {
-								"description": "Interval in ms to send keepalive packets. Default: 0 (disabled).",
-								"type": "number",
-								"default": 0
-							}			
-						},
-						"additionalProperties": true,
-						"required": [
-							"id",
-							"host"
-						]
-					}
-				},
-				"netconf.sshDebug": {
-					"title": "SSH Debug",
-					"markdownDescription": "Enable ssh2 debug logs. Default: false.",
-					"scope": "window",
-					"type": "boolean",
-					"default": false
-				},
-				"netconf.keysFile": {
-					"title": "Private keys-file",
-					"markdownDescription": "Private key file for key-based authentication. Default: ~/.ssh/id_rsa",
-					"scope": "window",
-					"type": "string",
-					"default": "~/.ssh/id_rsa"
-				},
-				"netconf.prettify": {
-					"title": "Prettify XML",
-					"markdownDescription": "Prettify NETCONF XML responses.",
-					"scope": "window",
-					"type": "boolean",
-					"default": false
-				},
-				"netconf.defaultUser": {
-					"title": "Default Username",
-					"markdownDescription": "Used for authentication, if no username was provided.",
-					"scope": "window",
-					"type": "string",
-					"default": "admin"
-				},
-				"netconf.defaultPort": {
-					"title": "Default Port",
-					"markdownDescription": "Used if no port was provided.",
-					"scope": "window",
-					"type": "number",
-					"default": 830
-				},
-				"netconf.defaultCapabilities": {
-					"title": "Default Client Capabilities used in <hello/> message",
-					"markdownDescription": "Used if no client capabilities were provided.",
-					"scope": "window",
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"default": [
-						"urn:ietf:params:netconf:base:1.0",
-						"urn:ietf:params:netconf:base:1.1"
-					]
-				},
-				"netconf.examplesURL": {
-					"title": "Examples Repository",
-					"markdownDescription": "Git Repository with NETCONF examples.",
-					"scope": "window",
-					"type": "string",
-					"default": "https://github.com/nokia/netconf-examples.git"
-				}
-			}
-		}
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile && npm run lint",
-		"lint": "eslint src --ext ts"
-	},
-	"devDependencies": {
-		"@types/ssh2": ">=1.15.0",
-		"@types/vscode": "^1.76.0",
-		"@typescript-eslint/eslint-plugin": "^5.45.0",
-		"eslint": "^8.37.0",
-		"typescript": "^5.0.4"
-	},
-	"dependencies": {
-		"fast-xml-parser": "^4.1.3",
-		"license-checker": "^25.0.1",
-		"ssh2": ">=1.16.0",
-		"xml-formatter": "^3.3.2"
-	},
-	"__metadata": {
-		"isApplicationScoped": false,
-		"installedTimestamp": 1680092475295
-	}
+    "name": "netconf-client",
+    "displayName": "NETCONF client for Visual Studio Code",
+    "description": "NETCONF client by Nokia",
+    "version": "2.1.2",
+    "author": {
+        "name": "Sven Wisotzky",
+        "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
+    },
+    "publisher": "NOKIA",
+    "icon": "resources/vscode-netconf.png",
+    "contributors": [
+        {
+            "name": "Sven Wisotzky"
+        }
+    ],
+    "keywords": [
+        "NETCONF",
+        "SSH",
+        "Interactive",
+        "XML",
+        "Nokia"
+    ],
+    "extensionKind": [
+        "workspace"
+    ],
+    "license": "BSD 3-Clause",
+    "galleryBanner": {
+        "color": "#005AFF",
+        "theme": "dark"
+    },
+    "engines": {
+        "vscode": "^1.95.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/nokia/vscode-netconf"
+    },
+    "main": "./out/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "netconf",
+                    "title": "NETCONF EXPLORER",
+                    "icon": "resources/dark/netconf.svg"
+                }
+            ]
+        },
+        "views": {
+            "netconf": [
+                {
+                    "id": "netconfServers",
+                    "name": "NETWORK DEVICES"
+                },
+                {
+                    "id": "netconfConnections",
+                    "name": "CONNECTIONS"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "netconf.add",
+                "title": "add managed device",
+                "icon": "$(plus)"
+            },
+            {
+                "command": "netconf.clone",
+                "title": "clone managed device",
+                "icon": "$(copy)"
+            },
+            {
+                "command": "netconf.update",
+                "title": "update managed device",
+                "icon": "$(settings)"
+            },
+            {
+                "command": "netconf.remove",
+                "title": "remove managed device",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "netconf.examples",
+                "title": "add netconf examples to workspace",
+                "icon": "$(cloud-download)"
+            },
+            {
+                "command": "netconf.connect",
+                "category": "netconf",
+                "title": "connect to device",
+                "icon": "$(vm-connect)"
+            },
+            {
+                "command": "netconf.clabConnect",
+                "title": "NETCONF: connect",
+                "icon": "$(vm-connect)"
+            },
+            {
+                "command": "netconf.clabAddHost",
+                "title": "NETCONF: add managed device",
+                "icon": "$(plus)"
+            },
+            {
+                "command": "netconf.rpc",
+                "category": "netconf",
+                "title": "Send custom <rpc>",
+                "icon": "$(send)"
+            },
+            {
+                "command": "netconf.commit",
+                "title": "Send <commit>",
+                "icon": "$(pass)"
+            },
+            {
+                "command": "netconf.discard",
+                "title": "Send <discard>",
+                "icon": "$(discard)"
+            },
+            {
+                "command": "netconf.validate",
+                "title": "Send <validate>",
+                "icon": "$(check-all)"
+            },
+            {
+                "command": "netconf.unlock",
+                "title": "Send <unlock>",
+                "icon": "$(lock)"
+            },
+            {
+                "command": "netconf.lock",
+                "title": "Send <lock>",
+                "icon": "$(unlock)"
+            },
+            {
+                "command": "netconf.getConfig",
+                "title": "Send <get-config>",
+                "icon": "$(file-code)"
+            },
+            {
+                "command": "netconf.get",
+                "title": "Send <get>",
+                "icon": "$(file-binary)"
+            },
+            {
+                "command": "netconf.getEvents",
+                "title": "Event notifications",
+                "icon": "$(comment)"
+            },
+            {
+                "command": "netconf.subscribe",
+                "title": "Send <subscribe>",
+                "icon": "$(comment-discussion)"
+            },
+            {
+                "command": "netconf.disconnect",
+                "title": "Disconnect",
+                "icon": "$(close)"
+            }
+        ],
+        "menus": {
+            "editor/title/run": [
+                {
+                    "when": "resourceLangId == xml",
+                    "command": "netconf.rpc"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "netconf.add",
+                    "when": "view == netconfServers",
+                    "group": "navigation"
+                },
+                {
+                    "command": "netconf.examples",
+                    "when": "view == netconfServers",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "netconf.clabConnect",
+                    "when": "viewItem == containerlabContainer",
+                    "group": "inline"
+                },
+                {
+                    "command": "netconf.connect",
+                    "when": "view == netconfServers",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "netconf.subscribe",
+                    "when": "view == netconfConnections && viewItem =~ /showSubscribe/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "netconf.getEvents",
+                    "when": "view == netconfConnections && viewItem =~ /events/",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "netconf.get",
+                    "when": "view == netconfConnections",
+                    "group": "inline@3"
+                },
+                {
+                    "command": "netconf.getConfig",
+                    "when": "view == netconfConnections",
+                    "group": "inline@4"
+                },
+                {
+                    "command": "netconf.lock",
+                    "when": "view == netconfConnections && viewItem =~ /open/",
+                    "group": "inline@6"
+                },
+                {
+                    "command": "netconf.unlock",
+                    "when": "view == netconfConnections && viewItem =~ /locked/",
+                    "group": "inline@7"
+                },
+                {
+                    "command": "netconf.validate",
+                    "when": "view == netconfConnections && viewItem =~ /showCandidate/",
+                    "group": "inline@8"
+                },
+                {
+                    "command": "netconf.discard",
+                    "when": "view == netconfConnections && viewItem =~ /showCandidate/",
+                    "group": "inline@9"
+                },
+                {
+                    "command": "netconf.commit",
+                    "when": "view == netconfConnections  && viewItem =~ /showCandidate/",
+                    "group": "inline@10"
+                },
+                {
+                    "command": "netconf.rpc",
+                    "when": "view == netconfConnections",
+                    "group": "inline@11"
+                },
+                {
+                    "command": "netconf.disconnect",
+                    "when": "view == netconfConnections",
+                    "group": "inline@12"
+                },
+                {
+                    "command": "netconf.clabAddHost",
+                    "when": "viewItem == containerlabContainer",
+                    "group": "netconfNavigation@0"
+                },
+                {
+                    "command": "netconf.clabConnect",
+                    "when": "viewItem == containerlabContainer",
+                    "group": "netconfNavigation@1"
+                },
+                {
+                    "command": "netconf.connect",
+                    "when": "view == netconfServers",
+                    "group": "connect"
+                },
+                {
+                    "command": "netconf.clone",
+                    "when": "view == netconfServers",
+                    "group": "edit"
+                },
+                {
+                    "command": "netconf.update",
+                    "when": "view == netconfServers",
+                    "group": "edit"
+                },
+                {
+                    "command": "netconf.remove",
+                    "when": "view == netconfServers",
+                    "group": "remove"
+                },
+                {
+                    "command": "netconf.rpc",
+                    "when": "view == netconfConnections",
+                    "group": "netconfCustom"
+                },
+                {
+                    "command": "netconf.disconnect",
+                    "when": "view == netconfConnections",
+                    "group": "netconfDisconnect"
+                },
+                {
+                    "command": "netconf.get",
+                    "when": "view == netconfConnections",
+                    "group": "netconfCommon@2"
+                },
+                {
+                    "command": "netconf.getConfig",
+                    "when": "view == netconfConnections",
+                    "group": "netconfCommon@3"
+                },
+                {
+                    "command": "netconf.subscribe",
+                    "when": "view == netconfConnections && viewItem =~ /showSubscribe/",
+                    "group": "netconfEvents@1"
+                },
+                {
+                    "command": "netconf.getEvents",
+                    "when": "view == netconfConnections && viewItem =~ /events/",
+                    "group": "netconfEvents@2"
+                },
+                {
+                    "command": "netconf.lock",
+                    "when": "view == netconfConnections && viewItem =~ /unlocked/",
+                    "group": "netconfCandidate@1"
+                },
+                {
+                    "command": "netconf.unlock",
+                    "when": "view == netconfConnections && viewItem =~ /locked/",
+                    "group": "netconfCandidate@2"
+                },
+                {
+                    "command": "netconf.validate",
+                    "when": "view == netconfConnections && viewItem =~ /showCandidate/",
+                    "group": "netconfCandidate@3"
+                },
+                {
+                    "command": "netconf.discard",
+                    "when": "view == netconfConnections && viewItem =~ /showCandidate/",
+                    "group": "netconfCandidate@4"
+                },
+                {
+                    "command": "netconf.commit",
+                    "when": "view == netconfConnections  && viewItem =~ /showCandidate/",
+                    "group": "netconfCandidate@5"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "NETCONF client",
+            "properties": {
+                "netconf.serverList": {
+                    "title": "NETCONF servers",
+                    "markdownDescription": "NETCONF servers",
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "description": "NETCONF server entry",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "uniqueItems": true
+                            },
+                            "host": {
+                                "description": "Hostname or IP address of the NETCONF server",
+                                "type": "string"
+                            },
+                            "port": {
+                                "type": "number",
+                                "default": 830
+                            },
+                            "username": {
+                                "type": "string",
+                                "default": "admin"
+                            },
+                            "password": {
+                                "type": "string",
+                                "default": "admin"
+                            },
+                            "clientCapabilities": {
+                                "description": "Client capabilities used in <hello/> message",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "default": [
+                                    "urn:ietf:params:netconf:base:1.0",
+                                    "urn:ietf:params:netconf:base:1.1"
+                                ]
+                            },
+                            "keepaliveInterval": {
+                                "description": "Interval in ms to send keepalive packets. Default: 0 (disabled).",
+                                "type": "number",
+                                "default": 0
+                            }
+                        },
+                        "additionalProperties": true,
+                        "required": [
+                            "id",
+                            "host"
+                        ]
+                    }
+                },
+                "netconf.sshDebug": {
+                    "title": "SSH Debug",
+                    "markdownDescription": "Enable ssh2 debug logs. Default: false.",
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false
+                },
+                "netconf.keysFile": {
+                    "title": "Private keys-file",
+                    "markdownDescription": "Private key file for key-based authentication. Default: ~/.ssh/id_rsa",
+                    "scope": "window",
+                    "type": "string",
+                    "default": "~/.ssh/id_rsa"
+                },
+                "netconf.prettify": {
+                    "title": "Prettify XML",
+                    "markdownDescription": "Prettify NETCONF XML responses.",
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false
+                },
+                "netconf.defaultUser": {
+                    "title": "Default Username",
+                    "markdownDescription": "Used for authentication, if no username was provided.",
+                    "scope": "window",
+                    "type": "string",
+                    "default": "admin"
+                },
+                "netconf.defaultPort": {
+                    "title": "Default Port",
+                    "markdownDescription": "Used if no port was provided.",
+                    "scope": "window",
+                    "type": "number",
+                    "default": 830
+                },
+                "netconf.defaultCapabilities": {
+                    "title": "Default Client Capabilities used in <hello/> message",
+                    "markdownDescription": "Used if no client capabilities were provided.",
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "urn:ietf:params:netconf:base:1.0",
+                        "urn:ietf:params:netconf:base:1.1"
+                    ]
+                },
+                "netconf.examplesURL": {
+                    "title": "Examples Repository",
+                    "markdownDescription": "Git Repository with NETCONF examples.",
+                    "scope": "window",
+                    "type": "string",
+                    "default": "https://github.com/nokia/netconf-examples.git"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts"
+    },
+    "devDependencies": {
+        "@types/ssh2": ">=1.15.0",
+        "@types/vscode": "^1.95.0",
+        "@typescript-eslint/eslint-plugin": "^5.45.0",
+        "eslint": "^8.57.1",
+        "typescript": "^5.0.4"
+    },
+    "dependencies": {
+        "fast-xml-parser": "^4.1.3",
+        "license-checker": "^25.0.1",
+        "ssh2": ">=1.16.0",
+        "xml-formatter": "^3.3.2"
+    },
+    "__metadata": {
+        "isApplicationScoped": false,
+        "installedTimestamp": 1680092475295
+    }
 }

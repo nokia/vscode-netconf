@@ -7,6 +7,7 @@
 		"lib": [
 			"ES6"
 		],
+		"types": ["vscode"],
 		"sourceMap": true,
 		"rootDir": "src",
 		"strict": true,

@@ -279,6 +279,10 @@ Contributions are welcome, to help improving the usability of `vscode-netconf`.
 - Send custom <rpc> works again from `editor/title/run`
 - Corresponding output channel opens automatically when selecting a connection (spotlight)
 
+### Release 2.1.2
+- Improved logic to trigger custom <rpc> from open XML document
+  Note: using activeTabGroup/activeTab (if scheme is XML)
+
 ## License
 
 This project is licensed under the BSD 3-Clause license - see the
