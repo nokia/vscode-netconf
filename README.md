@@ -37,6 +37,8 @@ normal pull-request procedure.
 
 ## Getting Started!
 
+![getting-started](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/getting-started.gif)
+
 Netconf server settings are persisted as part of the extension settings.
 For common cases like adding or deleting server entries, open the
 NETCONF view from the activity bar and you will have direct access to
@@ -59,11 +61,14 @@ part of the extension settings.
 
 * **Connection control**
 
-  The user has control when to connect/disconnect to the NETCONF server.
-  All RPC request are send over the same NETCONF session as long the user is
-  connected. This allows execute complex flows like `lock` > `edit-config` >
-  `validate` > `confirmed-commit` > `confirm` > `unlock`.
-  It's also an enabler to receive event notifications.
+  The user has control when to connect/disconnect to a NETCONF server.
+  Multiple parallel NETCONF sessions are supported, while the user
+  can decide, which RPC is send over which connection.
+  
+  This allows execute complex flows like `lock` > `edit-config` >
+  `validate` > `confirmed-commit` > `confirm` > `unlock`. It's also
+  an enabler to receive event notifications (see below). Detailed logs
+  (per connection) are available using OUTPUT channels.
 
 * **Support for NETCONF event notifications**
 
@@ -73,6 +78,9 @@ part of the extension settings.
   status-bar shows the number of received events. By clicking on the
   events icon in the status-bar, a new TextDocument containing the
   buffered notifications will be opened and the buffer gets cleared.
+
+  ![using-notifications](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/using-notifications.gif)
+
 
 * **Examples library**
 
@@ -102,6 +110,16 @@ part of the extension settings.
   To check the logs, use the console-view part of `Developer tools`
   (accessible from `Help`).
 
+* **Integration with vscode-containerlab**
+
+  Create connections to nodes managed by containerlab, without the need
+  to configure connection details. Extension will use containerlab hostname,
+  default user and key-based authentication. Fallback to password-based
+  authentication, while user is prompted to provide connecting details.
+  Default settings can be tuned as needed.
+
+  ![using-clab](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/using-clab.gif)
+  
 ## Compatibility
 
 Following vendors and device families have been tested so far:
