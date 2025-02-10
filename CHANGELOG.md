@@ -62,6 +62,9 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Improved logic to trigger custom <rpc> from open XML document
   Note: using activeTabGroup/activeTab (if scheme is XML)
 
+### [2.2.0]
+* Password storage using vsCode secrets
+
 ---
 
 **Copyright (c) 2025 NOKIA**

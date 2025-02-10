@@ -21,6 +21,7 @@ import { ExtensionLogger } from './vscExtensionLogger';
 const log : ExtensionLogger = new ExtensionLogger(`netconf | common`);
 let updateBadge: (badge: vscode.ViewBadge | undefined ) => void;
 let selection : NetconfConnectionEntry | undefined;
+let secrets : vscode.SecretStorage;
 
 interface ConnectInfo extends ssh2.ConnectConfig {
     id: string;
@@ -147,6 +148,7 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
             prompt: 'Enter password',
             password: true
         });
+        if (password) secrets.store(`${user}@${host}`, password);
 
         const caps = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
             "urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"
@@ -159,8 +161,6 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
             username: user,
             clientCapabilities: caps
         };
-        if (password) newEntry.password = password;
-
         servers.push(newEntry);
         
         try {
@@ -529,6 +529,10 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
         // --- update UI and connect --------------------------------------------
 
+        this.connect(server);
+    }
+
+    async connect(server : ConnectInfo): Promise<void> {
         const keysFile : string | undefined = vscode.workspace.getConfiguration('netconf').get('keysFile') || undefined;
         const sshdebug : boolean = vscode.workspace.getConfiguration('netconf').get('sshDebug') || false;
 
@@ -544,6 +548,9 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             config.clientCapabilities = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
                 "urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"
             ]);
+
+        if (!config.password)
+            config.password = await secrets.get(`${config.username}@${config.host}`);
 
         this.client.connect(config, keysFile, server.clientCapabilities, sshdebug, this.queryUserPassword);
     }
@@ -703,8 +710,11 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             placeHolder: `Enter password for ${username}@${host}`,
             prompt: "Authentication failure.",
             ignoreFocusOut: true
+        }).then(password => {
+            if (password) secrets.store(`${username}@${host}`, password);
+            return password;
         });
-    }    
+    }
 
     private computeContextValue(): string {
         let values = [];
@@ -729,6 +739,8 @@ export function activate(context: vscode.ExtensionContext) {
 	const treeView = vscode.window.createTreeView('netconfConnections', { treeDataProvider: nccp });
     context.subscriptions.push(treeView);
 
+    secrets = context.secrets;
+
     selection = undefined;
     treeView.onDidChangeSelection(event => {
         const newSelection = event.selection[0] as NetconfConnectionEntry || undefined;
@@ -752,6 +764,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.remove', async (server: NetconfServerEntry) => {
         if (server?.label) {
             let servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+            servers.filter(entry => entry.id === server.label).forEach(server => secrets.delete(`${server.username}@${server.host}`));
             servers = servers.filter(entry => entry.id !== server.label);
 
             try {
