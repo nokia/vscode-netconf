@@ -1,4 +1,4 @@
-# NETCONF for Visual Studio Code
+# NETCONF CLIENT for Visual Studio Code
 
 ## About
 
@@ -9,15 +9,15 @@ the industry leading open-source code editor and integrated development
 environment by the ability to communicate with latest networking equipment
 using the NETCONF protocol.
 
-The extension is implemented in native JavaScript/TypeScript and works
-on your desktop system of choice (Windows, macOS, Linux).
+The extension is implemented in native TypeScript and works on your desktop
+system of choice (Windows, macOS, Linux). It supports Remote SSH to simplify
+connectivity to lab environments using private IP addressing via SSH jump
+hosts and containerlab.
 
 ## Build
 
-To build this extension, you can use the Visual Studio Code Extensions
-command-line tool called 
-[vsce](https://code.visualstudio.com/api/working-with-extensions/publishing-extension).
-
+To build this extension yourself, you can use
+["Visual Studio Code Extensions"](https://code.visualstudio.com/api/working-with-extensions/publishing-extension).
 
 ```bash
 $ git clone https://github.com/nokia/vscode-netconf
@@ -148,140 +148,6 @@ compatibility and extend the capabilities.
   status-bar was not updated, you can execute `Developer: Reload Window` from the
   Visual Studio command-palette. This will enforce the restart all extensions and
   fixes the issue.
-
-## Feature candidates
-
-We've captured the following feature candidates for future evolution:
-
-* **Add Host Key Validation**
-
-  By default, the [ssh2 library](https://github.com/mscdex/ssh2) automatically
-  accepts any server-key. In secure environments it can be desired to
-  implement the `hostVerifier` callback function, to identify the server
-  host blocking potential man-in-the-middle attacks. The ask would be, to use
-  the `~/.ssh/known_hosts` file for validation.
-
-  In the case the node is unknown or the host-key has changed, a pop-up
-  dialogue would inform the user allowing to accept the new key and to update the
-  `known_hosts` or to block the connection.
-
-* **Device Information**
-
-  Capturing device-level information and display to the user (Vendor, Device
-  Family, Chassis Type, Release, CPU, Memory, Temperature, Power Consumption,
-  Ports/Interfaces, LLDP Neighbors).
-
-* **Telemetry Support**
-
-  Add extension telemetry to collect information about how `vscode-netconf` is
-  used. This is to provide better visibility about the number of active users
-  and how this extension is used. We are planning to publish some trending
-  regarding vendors/device-families, the industry support of IETF NETCONF
-  features and standard YANG models (IETF, OpenConfig). In addition, we
-  would use telemetry to improve error-handling and compatibility issues.
-
-* **Make extension YANG-aware**
-
-  Use the same concept as [pysros](https://github.com/nokia/pysros) to build
-  a local YANG library, based on the model-set that is supported by the
-  NETCONF server.
-
-  Following advanced features to be supported:
-  - Display model-path / xpath from cursor position
-  - Model-aware conversion between XML and JSON
-  - Model-aware compare between two model-instances
-  - Build a edit-config request from a get-config response
-  - Table-editor for YANG lists
-  - Run xpath queries
-  - Advanced edition using IntelliSense:
-    Error detection, Auto-completion, Suggests, Help on Hover
-
-* **Integrated Diff**
-
-  Graphical compare of running vs candidate datastores.
-
-* **Password Storage**
-
-  Store device passwords using vsCode secrets.
-
-* **Connection Profiles**
-
-  Avoid to enter the same set of connection properties over and over again.
-  Instead, inherit settings from profiles, centrally being managed.
-
-* **Logging improvements**
-
-  Create dedicated logs per session-id.
-  Housekeeping for old output channels w/o reloading vsCode windows (dispose).
-
-* **Refactor: ConnectionFactory**
-
-  Decoupling WebUI implementation (NetconfConnectionProvider, NetconfConnectionEntry) from
-  actual netconf connections. Ensure that only active/running sessions are displayed in
-  the WebUI.
-
-
-Contributions are welcome, to help improving the usability of `vscode-netconf`.
-
-## Changes
-### Release 1.1.0
-
-- Client capabilities are now configurable in the `netconf.serverList`.
-  By default, `vscode-netconf` is sending the `base:1.0` and `base:1.1`
-  capabilities to the server. By making the capabilities configurable,
-  the desired framing mechanism can be enforced. In addition, it is
-  possible to enable device-level feature like private candidates in
-  Nokia SR OS.
-- The execution time for RPCs is now captured and shown to the user.
-  This is to get some initial idea on performance for a given
-  `edit-config` or `commit` RPC. It is targeted for integrators
-  to optimize the communication to the server and to implement
-  response time-outs.
-
-  The execution time is only shown to RPCs that return a simple
-  `</ok>` as part of the confirmation dialogue. It's not available
-  for RPCs that return detailed responses like `<get>`, `<get-config`.
-  For those cases, it is shown in the console-log only.
-
-### Release 1.2.0
-- Improved logging using a dedicated vsCode OUTPUT channel called `netconf`.
-- Support for vsCode REMOTE SSH in case you don't have direct connectivity
-  to your network devices. Use `Remote SSH` to connect to your SSH jumphost,
-  and install this NETCONF extension using vsCode on the remote host.
-  When using containerized environments most propably the host running
-  containerlab is your SSH target.
-
-### Release 1.2.1
-- Improved error-handling for Ciena supporting XML tags to fix:
-  https://github.com/nokia/vscode-netconf/issues/2
-
-### Release 2.0.0
-- New user-interface: NETCONF view (check activity bar/side bar)
-  Note: Old UI is not longer available
-- Allow multiple concurrent connections to multiple servers
-  Note: Dedicated OUTPUT channels are used per server
-- Adhoc NETCONF connections from containerlab extension
-- Ask user for password, if authentication has failed
-
-### Release 2.1.0
-- Use hostname for containerlab (instead of IP)
-- Names for output channels (logging) using id (instead of hostname/IP)
-- Provide password for new connections
-- Taxonomy consistency: managed devices
-- Connections are displayed with session-id
-- Option to clone managed device entries
-- Various error-handling improvements
-- Update entries w/ cross-navigation to settings json
-
-### Release 2.1.1
-- UTF-8 support w/ chunked framing
-- Support for ssh-transport logging
-- Send custom <rpc> works again from `editor/title/run`
-- Corresponding output channel opens automatically when selecting a connection (spotlight)
-
-### Release 2.1.2
-- Improved logic to trigger custom <rpc> from open XML document
-  Note: using activeTabGroup/activeTab (if scheme is XML)
 
 ## License
 
