@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -342,7 +342,7 @@
                 "netconf.serverList": {
                     "title": "NETCONF servers",
                     "markdownDescription": "NETCONF servers",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -395,42 +395,42 @@
                 "netconf.sshDebug": {
                     "title": "SSH Debug",
                     "markdownDescription": "Enable ssh2 debug logs. Default: false.",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "boolean",
                     "default": false
                 },
                 "netconf.keysFile": {
                     "title": "Private keys-file",
                     "markdownDescription": "Private key file for key-based authentication. Default: ~/.ssh/id_rsa",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "string",
                     "default": "~/.ssh/id_rsa"
                 },
                 "netconf.prettify": {
                     "title": "Prettify XML",
                     "markdownDescription": "Prettify NETCONF XML responses.",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "boolean",
                     "default": false
                 },
                 "netconf.defaultUser": {
                     "title": "Default Username",
                     "markdownDescription": "Used for authentication, if no username was provided.",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "string",
                     "default": "admin"
                 },
                 "netconf.defaultPort": {
                     "title": "Default Port",
                     "markdownDescription": "Used if no port was provided.",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "number",
                     "default": 830
                 },
                 "netconf.defaultCapabilities": {
                     "title": "Default Client Capabilities used in <hello/> message",
                     "markdownDescription": "Used if no client capabilities were provided.",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -443,7 +443,7 @@
                 "netconf.examplesURL": {
                     "title": "Examples Repository",
                     "markdownDescription": "Git Repository with NETCONF examples.",
-                    "scope": "window",
+                    "scope": "machine",
                     "type": "string",
                     "default": "https://github.com/nokia/netconf-examples.git"
                 }

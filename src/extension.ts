@@ -81,12 +81,12 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
     private serverListEntries: NetconfServerEntry[];
   
     constructor() {
-        const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+        const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
         this.serverListEntries = servers.map(entry => new NetconfServerEntry(entry));
 
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('netconf.serverList')) {
-                const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+                const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
                 this.serverListEntries = servers.map(entry => new NetconfServerEntry(entry));
                 this.refresh();
             }
@@ -106,7 +106,7 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
     }
 
     async addServer() {
-        const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+        const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
 
         let id: string | undefined;
         do {
@@ -175,7 +175,7 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
 
     async clabAddHost(node: any) {
         if (node?.label && node?.v4Address && node?.kind) {
-            const servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+            const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
 
             const newEntry : ConnectInfo = {
                 id: node.label.split('-').splice(1).join('/'),
@@ -235,26 +235,29 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
     }
 
     refresh(): void {
+        // cleanup old connections:
+        this.connections = this.connections.filter(c => c.initializing || c.running);
+
+        // update user-interface
 		const count = this.connections.length;
 		if (count>0)
 			updateBadge({value: count, tooltip: `${count} connections`});
 		else
 			updateBadge(undefined);
 
+        if (count === 1 && selection === undefined)
+            this.connections[0].spotlight(true);
+        
         this._onDidChangeTreeData.fire();
     }
 
     connect(server: NetconfServerEntry) {
         const connectionEntry = new NetconfConnectionEntry(server.serverInfo, '(managed)');
         this.connections.push(connectionEntry);
-
-        connectionEntry.onDidChange(() => {
-            this.connections = this.connections.filter(c => c.initializing || c.running);
-            this.refresh();
-        });
+        connectionEntry.onDidChange(() => this.refresh());
     }
 
-    clabConnect(node: any) {    
+    clabConnect(node: any) {
         if (node?.label && node?.v4Address && node?.kind) {
             const host = node.v4Address.split('/')[0];
             const user = vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin");
@@ -273,11 +276,7 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
 
             const connectionEntry = new NetconfConnectionEntry(serverInfo, `(containerlab: ${node.kind})`);
             this.connections.push(connectionEntry);
-    
-            connectionEntry.onDidChange(() => {
-                this.connections = this.connections.filter(c => c.initializing || c.running);
-                this.refresh();
-            });
+            connectionEntry.onDidChange(() => this.refresh());
         } else {
 			log.warn("Information from containerlab is not yet available! Need to wait...");
             vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
@@ -436,7 +435,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             }
 
             this.sessionId = sessionId;
-            this.description = `#${sessionId} ${this.description}`
+            this.description = `#${sessionId} ${this.description}`;
 
             this.refresh();
         });
@@ -445,7 +444,10 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             this.logs.info('session disconnected');
             this.running = false;
             this.initializing = false;
-            this.spotlight(false);
+            if (selection === this)
+                this.spotlight(false);
+            else
+                this.refresh();
         });
 
         this.client.on('locked', () => {
@@ -557,6 +559,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
     spotlight(enable: boolean): void {
         if (enable) {
+            selection = this;
             this.logs.show();
             if (!this.netcfgStatus) {
                 this.netcfgStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 177);
@@ -573,6 +576,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
                 this.eventStatus.show();
             }
         } else {
+            selection = undefined;
             if (this.netcfgStatus) {
                 this.netcfgStatus.hide();
                 this.netcfgStatus.dispose();
@@ -605,10 +609,14 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             this.contextValue = this.computeContextValue();
 
             if (this.netcfgStatus)
-                this.netcfgStatus.text = `$(terminal) ${this.label} ${received}`;
+                this.netcfgStatus.text = `$(terminal) ${this.label} #${this.sessionId} ${received}`;
 
-            if (this.eventStatus)
-                this.eventStatus.text = `$(comment) ${events}`;
+            if (this.eventStatus) {
+                if (events) {
+                    this.eventStatus.text = `$(comment) ${events}`;
+                    this.eventStatus.show();
+                } else this.eventStatus.hide();
+            }
 
         } else {
             this.tooltip = new vscode.MarkdownString('disconnected');
@@ -744,15 +752,8 @@ export function activate(context: vscode.ExtensionContext) {
     selection = undefined;
     treeView.onDidChangeSelection(event => {
         const newSelection = event.selection[0] as NetconfConnectionEntry || undefined;
-        if (selection && selection !== newSelection) {
-            selection.spotlight(false);
-            selection = undefined;
-        }
-
-        if (newSelection) {
-            selection = newSelection;
-            selection.spotlight(true);
-        }
+        if (selection !== newSelection) selection?.spotlight(false);
+        if (newSelection) newSelection.spotlight(true);
     });
 
 	updateBadge = (badge: vscode.ViewBadge | undefined) => treeView.badge = badge;
@@ -763,7 +764,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.remove', async (server: NetconfServerEntry) => {
         if (server?.label) {
-            let servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+            let servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
             servers.filter(entry => entry.id === server.label).forEach(server => secrets.delete(`${server.username}@${server.host}`));
             servers = servers.filter(entry => entry.id !== server.label);
 
@@ -780,7 +781,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.clone', async (server: NetconfServerEntry) => {
         if (server?.label) {
-            let servers : ConnectInfo[] | [] = vscode.workspace.getConfiguration('netconf').get('serverList') ?? [];
+            const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
 
             let id: string | undefined;
             do {

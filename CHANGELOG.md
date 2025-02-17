@@ -65,6 +65,12 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 ### [2.2.0]
 * Password storage using vsCode secrets
 
+### [2.2.1]
+* Changed settings scope to "machine", avoiding conflicts with workspace
+* Put new connection into spotlight automatically to reduce number of clicks
+* Show notification in status bar only if notifications are available
+* Show session-id in status bar
+
 ---
 
 **Copyright (c) 2025 NOKIA**
