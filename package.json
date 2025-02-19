@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "2.2.1",
+    "version": "2.3.0",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -60,8 +60,18 @@
                     "name": "NETWORK DEVICES"
                 },
                 {
+                    "id": "netconfConnectionMgmt",
+                    "name": "ACTIVE CONNECTIONS",
+                    "type": "tree",
+                    "visibility": "visible"
+                }
+            ],
+            "explorer": [
+                {
                     "id": "netconfConnections",
-                    "name": "CONNECTIONS"
+                    "name": "NETCONF CONNECTIONS",
+                    "type": "tree",
+                    "visibility": "collapsed"
                 }
             ]
         },
@@ -196,12 +206,12 @@
                 },
                 {
                     "command": "netconf.subscribe",
-                    "when": "view == netconfConnections && viewItem =~ /showSubscribe/",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
                     "group": "inline@1"
                 },
                 {
                     "command": "netconf.getEvents",
-                    "when": "view == netconfConnections && viewItem =~ /events/",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /events/",
                     "group": "inline@2"
                 },
                 {
@@ -246,7 +256,7 @@
                 },
                 {
                     "command": "netconf.disconnect",
-                    "when": "view == netconfConnections",
+                    "when": "view == netconfConnectionMgmt",
                     "group": "inline@12"
                 },
                 {
@@ -286,7 +296,7 @@
                 },
                 {
                     "command": "netconf.disconnect",
-                    "when": "view == netconfConnections",
+                    "when": "view == netconfConnectionMgmt",
                     "group": "netconfDisconnect"
                 },
                 {
@@ -301,12 +311,12 @@
                 },
                 {
                     "command": "netconf.subscribe",
-                    "when": "view == netconfConnections && viewItem =~ /showSubscribe/",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
                     "group": "netconfEvents@1"
                 },
                 {
                     "command": "netconf.getEvents",
-                    "when": "view == netconfConnections && viewItem =~ /events/",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /events/",
                     "group": "netconfEvents@2"
                 },
                 {

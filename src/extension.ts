@@ -747,16 +747,19 @@ export function activate(context: vscode.ExtensionContext) {
 	const treeView = vscode.window.createTreeView('netconfConnections', { treeDataProvider: nccp });
     context.subscriptions.push(treeView);
 
+	const treeViewM = vscode.window.createTreeView('netconfConnectionMgmt', { treeDataProvider: nccp });
+    context.subscriptions.push(treeViewM);
+
     secrets = context.secrets;
 
     selection = undefined;
-    treeView.onDidChangeSelection(event => {
+    treeViewM.onDidChangeSelection(event => {
         const newSelection = event.selection[0] as NetconfConnectionEntry || undefined;
         if (selection !== newSelection) selection?.spotlight(false);
         if (newSelection) newSelection.spotlight(true);
     });
 
-	updateBadge = (badge: vscode.ViewBadge | undefined) => treeView.badge = badge;
+	updateBadge = (badge: vscode.ViewBadge | undefined) => treeViewM.badge = badge;
 
 	// --- server commands --------------------------------------------------
 

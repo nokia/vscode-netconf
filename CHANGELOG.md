@@ -71,6 +71,14 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Show notification in status bar only if notifications are available
 * Show session-id in status bar
 
+### [2.3.0]
+* `NETCONF CONNECTIONS` are not accessible from EXPLORER to avoid unnecessary
+  navigation between explorer view and netconf view. Connection management
+  (subscriptions, disconnect, spotlight) remains in the netconf view. Shortcuts
+  for NETCONF RPCs (get, get-config , validate, discard, commit) are only
+  available from explorer view. Custom RPC is accessible from explorer view
+  plus statusbar (for spotlighted node).
+
 ---
 
 **Copyright (c) 2025 NOKIA**
