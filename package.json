@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "2.3.0",
+    "version": "2.3.1",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -200,18 +200,49 @@
                     "group": "inline"
                 },
                 {
+                    "command": "netconf.clabConnect",
+                    "when": "viewItem == containerlabContainer",
+                    "group": "netconfNavigation@1"
+                },
+                {
+                    "command": "netconf.clabAddHost",
+                    "when": "viewItem == containerlabContainer",
+                    "group": "netconfNavigation@2"
+                },
+
+                {
                     "command": "netconf.connect",
                     "when": "view == netconfServers",
-                    "group": "inline@1"
+                    "group": "inline"
+                },
+                {
+                    "command": "netconf.connect",
+                    "when": "view == netconfServers",
+                    "group": "connect"
+                },
+                {
+                    "command": "netconf.clone",
+                    "when": "view == netconfServers",
+                    "group": "edit"
+                },
+                {
+                    "command": "netconf.update",
+                    "when": "view == netconfServers",
+                    "group": "edit"
+                },
+                {
+                    "command": "netconf.remove",
+                    "when": "view == netconfServers",
+                    "group": "remove"
                 },
                 {
                     "command": "netconf.subscribe",
-                    "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
+                    "when": "view == netconfConnections && viewItem =~ /showSubscribe/",
                     "group": "inline@1"
                 },
                 {
                     "command": "netconf.getEvents",
-                    "when": "view == netconfConnectionMgmt && viewItem =~ /events/",
+                    "when": "view == netconfConnections && viewItem =~ /events/",
                     "group": "inline@2"
                 },
                 {
@@ -256,38 +287,8 @@
                 },
                 {
                     "command": "netconf.disconnect",
-                    "when": "view == netconfConnectionMgmt",
+                    "when": "view == netconfConnections",
                     "group": "inline@12"
-                },
-                {
-                    "command": "netconf.clabAddHost",
-                    "when": "viewItem == containerlabContainer",
-                    "group": "netconfNavigation@0"
-                },
-                {
-                    "command": "netconf.clabConnect",
-                    "when": "viewItem == containerlabContainer",
-                    "group": "netconfNavigation@1"
-                },
-                {
-                    "command": "netconf.connect",
-                    "when": "view == netconfServers",
-                    "group": "connect"
-                },
-                {
-                    "command": "netconf.clone",
-                    "when": "view == netconfServers",
-                    "group": "edit"
-                },
-                {
-                    "command": "netconf.update",
-                    "when": "view == netconfServers",
-                    "group": "edit"
-                },
-                {
-                    "command": "netconf.remove",
-                    "when": "view == netconfServers",
-                    "group": "remove"
                 },
                 {
                     "command": "netconf.rpc",
@@ -296,7 +297,7 @@
                 },
                 {
                     "command": "netconf.disconnect",
-                    "when": "view == netconfConnectionMgmt",
+                    "when": "view == netconfConnections",
                     "group": "netconfDisconnect"
                 },
                 {
@@ -311,12 +312,12 @@
                 },
                 {
                     "command": "netconf.subscribe",
-                    "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
+                    "when": "view == netconfConnections && viewItem =~ /showSubscribe/",
                     "group": "netconfEvents@1"
                 },
                 {
                     "command": "netconf.getEvents",
-                    "when": "view == netconfConnectionMgmt && viewItem =~ /events/",
+                    "when": "view == netconfConnections && viewItem =~ /events/",
                     "group": "netconfEvents@2"
                 },
                 {
@@ -342,6 +343,116 @@
                 {
                     "command": "netconf.commit",
                     "when": "view == netconfConnections  && viewItem =~ /showCandidate/",
+                    "group": "netconfCandidate@5"
+                },
+                {
+                    "command": "netconf.subscribe",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "netconf.getEvents",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /events/",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "netconf.get",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "inline@3"
+                },
+                {
+                    "command": "netconf.getConfig",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "inline@4"
+                },
+                {
+                    "command": "netconf.lock",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /open/",
+                    "group": "inline@6"
+                },
+                {
+                    "command": "netconf.unlock",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /locked/",
+                    "group": "inline@7"
+                },
+                {
+                    "command": "netconf.validate",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showCandidate/",
+                    "group": "inline@8"
+                },
+                {
+                    "command": "netconf.discard",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showCandidate/",
+                    "group": "inline@9"
+                },
+                {
+                    "command": "netconf.commit",
+                    "when": "view == netconfConnectionMgmt  && viewItem =~ /showCandidate/",
+                    "group": "inline@10"
+                },
+                {
+                    "command": "netconf.rpc",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "inline@11"
+                },
+                {
+                    "command": "netconf.disconnect",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "inline@12"
+                },
+                {
+                    "command": "netconf.rpc",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "netconfCustom"
+                },
+                {
+                    "command": "netconf.disconnect",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "netconfDisconnect"
+                },
+                {
+                    "command": "netconf.get",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "netconfCommon@2"
+                },
+                {
+                    "command": "netconf.getConfig",
+                    "when": "view == netconfConnectionMgmt",
+                    "group": "netconfCommon@3"
+                },
+                {
+                    "command": "netconf.subscribe",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
+                    "group": "netconfEvents@1"
+                },
+                {
+                    "command": "netconf.getEvents",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /events/",
+                    "group": "netconfEvents@2"
+                },
+                {
+                    "command": "netconf.lock",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /unlocked/",
+                    "group": "netconfCandidate@1"
+                },
+                {
+                    "command": "netconf.unlock",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /locked/",
+                    "group": "netconfCandidate@2"
+                },
+                {
+                    "command": "netconf.validate",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showCandidate/",
+                    "group": "netconfCandidate@3"
+                },
+                {
+                    "command": "netconf.discard",
+                    "when": "view == netconfConnectionMgmt && viewItem =~ /showCandidate/",
+                    "group": "netconfCandidate@4"
+                },
+                {
+                    "command": "netconf.commit",
+                    "when": "view == netconfConnectionMgmt  && viewItem =~ /showCandidate/",
                     "group": "netconfCandidate@5"
                 }
             ]
@@ -390,9 +501,14 @@
                                 ]
                             },
                             "keepaliveInterval": {
-                                "description": "Interval in ms to send keepalive packets. Default: 0 (disabled).",
+                                "description": "Interval in ms to send SSH keepalive packets. Default: 0 (disabled).",
                                 "type": "number",
                                 "default": 0
+                            },
+                            "keepaliveCountMax": {
+                                "description": "Number of consecutive, unanswered SSH keepalive packets before disconnection. Default: 3.",
+                                "type": "number",
+                                "default": 3
                             }
                         },
                         "additionalProperties": true,

@@ -159,7 +159,9 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
             host: host,
             port: Number(port),
             username: user,
-            clientCapabilities: caps
+            clientCapabilities: caps,
+            keepaliveCountMax: 3,
+            keepaliveInterval: 5000
         };
         servers.push(newEntry);
         
@@ -182,7 +184,9 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
                 host: node.label, // if IP address is desired: node.v4Address.split('/')[0];
                 username: vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin"),
                 port: vscode.workspace.getConfiguration("netconf").get("defaultPort", 830),
-                clientCapabilities: vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", ["urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"])
+                clientCapabilities: vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", ["urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"]),
+                keepaliveCountMax: 3,
+                keepaliveInterval: 5000    
             };
 
             if (servers.some(e => e.id === newEntry.id)) {
@@ -271,7 +275,9 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
                 host: node.label,
                 username: user,
                 port: port,
-                clientCapabilities: caps
+                clientCapabilities: caps,
+                keepaliveCountMax: 3,
+                keepaliveInterval: 5000    
             };
 
             const connectionEntry = new NetconfConnectionEntry(serverInfo, `(containerlab: ${node.kind})`);

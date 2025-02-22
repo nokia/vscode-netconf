@@ -79,6 +79,12 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
   available from explorer view. Custom RPC is accessible from explorer view
   plus statusbar (for spotlighted node).
 
+### [2.3.1]
+* Align shortcuts for active `NETCONF CONNECTIONS` in EXPLORER and NETCONF
+  sidebar to avoid confusion and to improve usability.
+* Enable SSH keepalives by default (5sec / 3 intervals) to automatically
+  detect if sessions are still alive.
+
 ---
 
 **Copyright (c) 2025 NOKIA**
