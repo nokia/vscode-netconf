@@ -126,13 +126,15 @@ Following vendors and device families have been tested so far:
 
 | Vendor | Product Family | Router OS |
 |---|---|---|
-| Ciena | 5000 series | SAOS 10.9 |
+| Ciena | 5000, 8000 series | SAOS 10.9, 10.11 |
 | Cisco | NCS 540 series | IOS-XR 7.9.1 |
 | Ericsson | 6000 series | IPOS 23.1 |
 | Huawei | NetEngine 8000 series | rel 8.22/1 |
 | Juniper | MX series | JunOS 22.4R1 |
 | Nokia | SR families | SR OS |
 | Nokia | SRL families | SR Linux |
+| Ribbon | | |
+| H3C | | |
 
 We don't mind to get access to 3rd party equipment (preferred virtual
 router/simulator images as virtual-machine or docker), test licenses and
@@ -159,13 +161,6 @@ compatibility and extend the capabilities.
   text without differentiation between message title and details and there is no
   possibility to show preformatted text and enforce line-breaks. In consequence,
   SSH banners are not displayed very nicely.
-
-* Under rare conditions, NETCONF-over-SSH session death is not properly propagated.
-  SSH-level keepalive mechanism can be activated to improve session health checks.
-  If for whatever reason the underlying session died but extension state including
-  status-bar was not updated, you can execute `Developer: Reload Window` from the
-  Visual Studio command-palette. This will enforce the restart all extensions and
-  fixes the issue.
 
 ## License
 
