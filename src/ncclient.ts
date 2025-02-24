@@ -10,12 +10,38 @@
 
 import {Logger, ConsoleLogger} from './logger';
 import {EventEmitter} from 'events';
+
+import * as fs from 'fs';
+import * as os from 'os';
 import * as ssh2 from 'ssh2';
+import * as path from 'path';
+
 import {XMLValidator, XMLParser, XMLBuilder} from 'fast-xml-parser';
 import xmlFormat from 'xml-formatter';
 
 export type netconfCallback = (msgid: string, msg: string) => void;
 export type passwordCallback = (host: string, username: string) => Thenable<string | undefined>;
+
+interface yangModuleBase {
+	name: string;
+	revision: string;
+	location?: string;
+}
+
+interface yangModule extends yangModuleBase {
+	namespace: string;
+	submodule?: yangModuleBase[];
+	feature?: string;
+}
+
+interface yangModuleSet {
+	name: string;
+	module: yangModule[];
+	'import-only-module': yangModule[];
+}
+
+export type libraryCallback = (modules: yangModule[]) => void;
+export type schemaCallback = (schema: string) => void;
 
 export class ncclient extends EventEmitter {
 	client: ssh2.Client;
@@ -33,6 +59,9 @@ export class ncclient extends EventEmitter {
 	base11Framing: boolean;
 	logger: Logger;
 
+	requestId: number;
+	sessionId: number;
+
 	private connectInfo: ssh2.ConnectConfig;
 
 	constructor (logger: Logger|undefined = undefined) {
@@ -48,6 +77,8 @@ export class ncclient extends EventEmitter {
 		this.bytes = 0;
 		this.ncs = undefined;
 		this.caplist = [];
+		this.requestId = 0;
+		this.sessionId = -1;
 		this.callbacks = {};
 		this.timestamp = {};
 		this.privkey = undefined;
@@ -101,6 +132,7 @@ export class ncclient extends EventEmitter {
 				this.bytes = 0;
 				this.ncs = null;
 				this.caplist = [];
+				this.sessionId = -1;
 				this.base11Framing = false;
 				this.emit('disconnected');
 			}
@@ -159,23 +191,26 @@ export class ncclient extends EventEmitter {
 				this.logger.error('NETCONF ERROR', 'unexpected <hello> message', this._dumpXML(msg));
 				return this.emit('netconfError', 'unexpected <hello> message', msg);
 			} else {
-				const sessionId = data.hello['session-id'];
+				this.sessionId = data.hello['session-id'];
 				const serverCapabilities = data.hello.capabilities.capability;
 				this.caplist = [];
-				if (serverCapabilities.includes('urn:ietf:params:netconf:base:1.0')) this.caplist.push('base:1.0');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:base:1.1')) this.caplist.push('base:1.1');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:candidate:1.0')) this.caplist.push('candidate');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:confirmed-commit:1.1')) this.caplist.push('confirmed-commit');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:rollback-on-error:1.0')) this.caplist.push('rollback-on-error');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:notification:1.0')) this.caplist.push('notification');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:interleave:1.0')) this.caplist.push('interleave');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:validate:1.0') ||
-					serverCapabilities.includes('urn:ietf:params:netconf:capability:validate:1.1')) this.caplist.push('validate');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:startup:1.0')) this.caplist.push('startup');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:with-defaults:1.0')) this.caplist.push('with-defaults');
-				if (serverCapabilities.includes('urn:ietf:params:netconf:capability:yang-library:1.1')) this.caplist.push('yang-library');
-				if (serverCapabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring')) this.caplist.push('netconf-monitoring');
-				if (serverCapabilities.includes('urn:ietf:params:xml:ns:yang:ietf-netconf-nmda?module=ietf-netconf-nmda')) this.caplist.push('netconf-nmda');
+				this.requestId = 10000;
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:base:1.0'))) this.caplist.push('base:1.0');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:base:1.1'))) this.caplist.push('base:1.1');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:candidate:1.0'))) this.caplist.push('candidate');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:confirmed-commit:1.'))) this.caplist.push('confirmed-commit');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:rollback-on-error:1.0'))) this.caplist.push('rollback-on-error');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:notification:1.0'))) this.caplist.push('notification:1.0');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:notification:2.0'))) this.caplist.push('notification:2.0');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:interleave:1.0'))) this.caplist.push('interleave');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:validate:1.'))) this.caplist.push('validate');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:startup:1.0'))) this.caplist.push('startup');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:with-defaults:1.0'))) this.caplist.push('with-defaults');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:yang-library:1.0'))) this.caplist.push('yang-library:1.0');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:netconf:capability:yang-library:1.1'))) this.caplist.push('yang-library:1.1');
+
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring'))) this.caplist.push('netconf-monitoring');
+				if (serverCapabilities.some((cap : string) => cap.startsWith('urn:ietf:params:xml:ns:yang:ietf-netconf-nmda'))) this.caplist.push('netconf-nmda');
 
 				if (this.clientCapabilities.includes('urn:ietf:params:netconf:base:1.1') && serverCapabilities.includes('urn:ietf:params:netconf:base:1.1')) {
 					this.logger.info('Framing: [base:1.1] rfc6242 ch4.2 Chunked Framing');
@@ -202,9 +237,9 @@ export class ncclient extends EventEmitter {
 				this.ncs.write(`<?xml version="1.0" encoding="UTF-8"?>\n${netconfHello}]]>]]>`);
 
 				this.connected = true;
-				this.logger.info(`Connection established, session-id=${sessionId}`, this._dumpXML(msg));
+				this.logger.info(`Connection established, session-id=${this.sessionId}`, this._dumpXML(msg));
 				this.logger.info('Server capabilities: ', this.caplist);
-				return this.emit('connected', msg, this.caplist, sessionId);
+				return this.emit('connected', msg, this.caplist, this.sessionId);
 			}
 		} else if (!this.connected) {
 			// Note: we are not yet connected; first server message must be <hello>
@@ -370,10 +405,13 @@ export class ncclient extends EventEmitter {
 		if (!('rpc' in data))
 			return this.emit('error', 'BAD REQUEST', 'Missing: rpc');
 
-		if (!('@_message-id' in data.rpc))
-			return this.emit('error', 'BAD REQUEST', 'Missing: message-id');
-
-		const msgid = data.rpc['@_message-id'];
+		let msgid = 'unknown';
+		if ('@_message-id' in data.rpc) {
+			msgid = data.rpc['@_message-id'];
+		} else {
+			msgid = `${this.sessionId}:${this.requestId++}`;
+			request = request.replace(/<([a-zA-Z][a-zA-Z0-9_-]*:)?rpc\b([^>]*)>/i, `<$1rpc$2 message-id="${msgid}">`);
+		}
 
 		if (msgid in this.callbacks)
 			return this.emit('error', 'BAD REQUEST', 'Message-id is already in-use');
@@ -416,6 +454,126 @@ export class ncclient extends EventEmitter {
 			this.rpc(request, 10,  (msgid : string, msg : string) => {
 				this.logger.info('candidate datastore successfully unlocked');
 				return this.emit('unlocked');
+			});
+		}
+	}
+
+	/**
+	 * YANG library
+	 */
+
+	getYangLibrary(folder: string, revisions: boolean = true) {
+		this.logger.debug('ncclient:getYangLibrary()');
+
+		const options = {
+			attributeNamePrefix : "@_",
+			ignoreAttributes: false,
+			ignoreNameSpace: false,
+			removeNSPrefix: true
+		};
+
+        if (this.caplist.includes('yang-library:1.1')) {
+            const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="get-yang-library" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get><filter type="subtree"><yang-library xmlns="urn:ietf:params:xml:ns:yang:ietf-yang-library"/></filter></get></rpc>';
+			this.rpc(request, 10,  (msgid : string, msg : string) => {
+				const data = new XMLParser(options).parse(msg);
+
+				let moduleSets = data?.['rpc-reply']?.data?.['yang-library']?.['module-set'];
+				if (moduleSets) {
+					if (!Array.isArray(moduleSets))
+						moduleSets = [moduleSets];
+
+					moduleSets.forEach((entry : yangModuleSet) => {
+						if (entry.module) {
+							if (!Array.isArray(entry.module)) entry.module = [entry.module];
+							entry.module.forEach((entry: yangModule) => {
+								if (entry.submodule && !Array.isArray(entry.submodule)) entry.submodule = [entry.submodule];
+							});
+						}
+						if (entry['import-only-module']) {
+							if (!Array.isArray(entry['import-only-module'])) entry['import-only-module'] = [entry['import-only-module']];
+							entry['import-only-module'].forEach((entry: yangModule) => {
+								if (entry.submodule && !Array.isArray(entry.submodule)) entry.submodule = [entry.submodule];
+							});
+						}
+					});
+					this.logger.info(`sets: ${JSON.stringify(moduleSets)}`);
+					
+					const yangModules = moduleSets.flatMap((setEntry : yangModuleSet) => [
+						...(setEntry.module ?? []).flatMap((module) => [module, ...(module.submodule ?? [])]),  
+						...(setEntry["import-only-module"] ?? []).flatMap((module) => [module, ...(module.submodule ?? [])])
+					]);
+
+					this.logger.info(`modules: ${JSON.stringify(yangModules)}`);
+					this.getSchemas(yangModules, yangModules.length, folder, revisions);
+				} else {
+					const errmsg = `Malformed yang-library:1.1 response, Message: ${msg}`;
+					return this.emit('netconfError', errmsg, msg);	
+				}					
+			});				
+        } else if (this.caplist.includes('yang-library:1.0')) {
+            const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="get-yang-library" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get><filter type="subtree"><modules-state xmlns="urn:ietf:params:xml:ns:yang:ietf-yang-library"/></filter></get></rpc>';
+			this.rpc(request, 10,  (msgid : string, msg : string) => {
+				const data = new XMLParser(options).parse(msg);
+
+				let modules = data?.['rpc-reply']?.data?.['modules-state']?.module;
+				if (modules) {
+					if (!Array.isArray(modules))
+						modules = [modules];
+
+					modules.forEach((entry : yangModule) => {
+						if (entry.submodule && !Array.isArray(entry.submodule)) entry.submodule = [entry.submodule];
+					});
+					
+					const yangModules = modules.flatMap((module : yangModule) => [module, ...(module.submodule ?? [])]);
+
+					this.logger.info(`modules: ${JSON.stringify(yangModules)}`);
+					this.getSchemas(yangModules, yangModules.length, folder, revisions);
+				} else {
+					const errmsg = `Malformed yang-library:1.0 response, Message: ${msg}`;
+					return this.emit('netconfError', errmsg, msg);	
+				}
+			});
+        }
+	}
+
+	getSchemas(modules: yangModule[], total: number, folder: string, revisions: boolean) {
+		this.logger.debug('ncclient:getSchemas()');
+
+		const options = {
+			attributeNamePrefix : "@_",
+			ignoreAttributes: false,
+			ignoreNameSpace: false,
+			removeNSPrefix: true
+		};
+
+		const module = modules.pop();
+		const index = total - modules.length;
+		this.logger.info(JSON.stringify(module));
+
+		if (module?.name) {
+			let request;
+			if (module?.revision)
+	            request = `<?xml version="1.0" encoding="UTF-8"?><rpc xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-schema xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring"><identifier>${module.name}</identifier><version>${module.revision}</version><format>yang</format></get-schema></rpc>`;
+			else
+	            request = `<?xml version="1.0" encoding="UTF-8"?><rpc xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-schema xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-monitoring"><identifier>${module.name}</identifier><format>yang</format></get-schema></rpc>`;
+
+			this.rpc(request, 300,  (msgid : string, msg : string) => {
+				const data = new XMLParser(options).parse(msg);
+
+				let yangspec = data?.['rpc-reply']?.data;
+				if (yangspec) {
+					yangspec = require("he").decode(yangspec).trim();
+
+					this.emit('yangDefinition', module.name, module.revision, yangspec, index, total);
+					if (folder) {
+						if (revisions)
+							fs.writeFileSync(path.join(folder, `${module.name}@${module.revision}.yang`), yangspec);							
+						else
+							fs.writeFileSync(path.join(folder, `${module.name}.yang`), yangspec);
+					}
+				}
+
+				this.getSchemas(modules, total, folder, revisions);
 			});
 		}
 	}
@@ -465,10 +623,10 @@ export class ncclient extends EventEmitter {
 
 		if (keyfile && !config.password && !config.privateKey) {
 			if (keyfile.charAt(0)==="~") {
-				keyfile = require('os').homedir+keyfile.substring(1);
+				keyfile = os.homedir+keyfile.substring(1);
 			}
 			try {
-				config.privateKey = require('fs').readFileSync(keyfile).toString('utf-8');
+				config.privateKey = fs.readFileSync(keyfile).toString('utf-8');
 			}
 			catch (e) {
 				const errmsg = e instanceof Error ? e.message : String(e);

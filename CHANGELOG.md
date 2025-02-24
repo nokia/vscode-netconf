@@ -85,6 +85,10 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Enable SSH keepalives by default (5sec / 3 intervals) to automatically
   detect if sessions are still alive.
 
+### [2.4.0]
+* Add message-id if not provided as part of the request
+* New operation to download device yang-library
+
 ---
 
 **Copyright (c) 2025 NOKIA**

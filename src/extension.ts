@@ -9,14 +9,14 @@
 import * as os from 'os';
 import * as fs from 'fs';
 
-import * as vscode from 'vscode';
 import * as ssh2 from 'ssh2';
+import * as path from 'path';
+import * as vscode from 'vscode';
 
 import xmlFormat from 'xml-formatter';
 
 import { ncclient } from './ncclient';
 import { ExtensionLogger } from './vscExtensionLogger';
-
 
 const log : ExtensionLogger = new ExtensionLogger(`netconf | common`);
 let updateBadge: (badge: vscode.ViewBadge | undefined ) => void;
@@ -299,6 +299,27 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
     get       (connection: NetconfConnectionEntry) { connection.get();        }
     subscribe (connection: NetconfConnectionEntry) { connection.subscribe();  }
 
+    async getSchemas(connection: NetconfConnectionEntry) {
+        const uri = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            openLabel: 'Select YANG folder'
+        });
+
+        if (uri && uri.length === 1) {
+            const yangdir = await vscode.window.showInputBox({
+                title: `Download YANG modules from ${connection.host}`,
+                value: path.join(uri[0].fsPath, connection.host, 'yang')
+            });
+
+            if (yangdir) {
+                fs.mkdirSync(yangdir, { recursive: true });
+                connection.getSchemas(yangdir);
+            }
+        }
+    }
+
     async rpc(context? : NetconfConnectionEntry | vscode.Uri) {
         if (context instanceof NetconfConnectionEntry) {
             // triggered from: view/item/context (treeView: NetconfConnectionEntry)
@@ -356,8 +377,8 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
     private _onDidChange = new vscode.EventEmitter<NetconfConnectionEntry | undefined | null | void>();
     readonly onDidChange = this._onDidChange.event;
 
-    public host: String;
-    public user: String;
+    public host: string;
+    public user: string;
     public sessionId: Number;
 
     public logs: ExtensionLogger;
@@ -368,12 +389,15 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
     private showSubscribe : boolean;
     private showCandidate : boolean;
+    private showLibrary : boolean;
     private isLocked : boolean;
 
     private established : string;
     private isBusy : boolean;
     private bytesReceived : number;
     private events : string[];
+
+    private additionalInfo: string;
 
     private netcfgStatus: vscode.StatusBarItem | undefined;
     private eventStatus: vscode.StatusBarItem | undefined;
@@ -395,11 +419,14 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         this.running = false;
         this.showSubscribe = false;
         this.showCandidate = false;
+        this.showLibrary = false;
         this.isLocked = false;
         this.isBusy = false;
 
         this.bytesReceived = 0;
         this.established = new Intl.DateTimeFormat('en-US', {year: "numeric", month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short'}).format(Date.now());
+
+        this.additionalInfo = '';
         
         Date.now();
         this.events = [];
@@ -440,6 +467,9 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
                 this.isLocked = false;
             }
 
+            if (caplist.includes('yang-library:1.0') || caplist.includes('yang-library:1.1'))
+                this.showLibrary = true;
+
             this.sessionId = sessionId;
             this.description = `#${sessionId} ${this.description}`;
 
@@ -472,7 +502,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         });
     
         this.client.on('rpcResponse', (msgid, data, elapsed) => {
-            showXmlDocument(data);
+            // showXmlDocument(data);
             this.refresh();
         });
     
@@ -532,6 +562,15 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
         this.client.on('data', (bytes) => {
             this.bytesReceived = bytes;
+            this.refresh();
+        });
+
+        this.client.on('yangDefinition', (module: string, revision: string, yangspec: string, idx: number, total: number) => {
+            if (idx<total)
+                this.additionalInfo = `>>> yang download ${idx}/${total}; ${module}@${revision} done`;
+            else
+                this.additionalInfo = '';
+
             this.refresh();
         });
 
@@ -599,7 +638,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
     refresh(): void {
         if (this.running) {
-            const lines:String[] = [];
+            const lines:string[] = [];
             const received = this.bytesReceived < 10_000_000 ? (this.bytesReceived>>10)+'KB' : (this.bytesReceived>>20)+'MB';
             const events = this.events.length;
     
@@ -615,7 +654,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
             this.contextValue = this.computeContextValue();
 
             if (this.netcfgStatus)
-                this.netcfgStatus.text = `$(terminal) ${this.label} #${this.sessionId} ${received}`;
+                this.netcfgStatus.text = `$(terminal) ${this.label} #${this.sessionId} ${received} ${this.additionalInfo}`;
 
             if (this.eventStatus) {
                 if (events) {
@@ -639,6 +678,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 	async rpc(request : string) {
         this.client?.rpc(request, 300, (msgid : string, msg : string) => {
             this.logs.debug(`rpc #${msgid} done`);
+            showXmlDocument(msg);
         });
 	}
     
@@ -646,6 +686,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get/></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
+            showXmlDocument(msg);
             this.refresh();
 		});		
 	}
@@ -654,6 +695,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
+            showXmlDocument(msg);
             this.refresh();
 		});		
 	}
@@ -709,6 +751,11 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		});		
 	}
 
+    async getSchemas(folder: string) {
+        const addRevisions : boolean = vscode.workspace.getConfiguration('netconf').get('yangRevisions') || false;
+        this.client?.getYangLibrary(folder, addRevisions);
+    }
+
 	async lock() {
 		this.client?.lock();
 	}
@@ -740,7 +787,10 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
                 values.push("locked"); 
             else
                 values.push("open");
-        } 
+        }
+        if (this.showLibrary)
+            values.push("yangLibrary");
+
         return values.join(",");
     }
 }
@@ -876,6 +926,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.getEvents', nccp.getEvents.bind(nccp)));
 	context.subscriptions.push(vscode.commands.registerCommand('netconf.subscribe', nccp.subscribe.bind(nccp)));
+	context.subscriptions.push(vscode.commands.registerCommand('netconf.getSchemas', nccp.getSchemas.bind(nccp)));
 }
 
 export function deactivate() {

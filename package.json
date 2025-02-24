@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "2.3.1",
+    "version": "2.4.0",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -172,6 +172,11 @@
                 "command": "netconf.disconnect",
                 "title": "Disconnect",
                 "icon": "$(close)"
+            },
+            {
+                "command": "netconf.getSchemas",
+                "title": "Download YANG modules",
+                "icon": "$(cloud-download)"
             }
         ],
         "menus": {
@@ -209,7 +214,6 @@
                     "when": "viewItem == containerlabContainer",
                     "group": "netconfNavigation@2"
                 },
-
                 {
                     "command": "netconf.connect",
                     "when": "view == netconfServers",
@@ -346,6 +350,11 @@
                     "group": "netconfCandidate@5"
                 },
                 {
+                    "command": "netconf.getSchemas",
+                    "when": "view == netconfConnections  && viewItem =~ /yangLibrary/",
+                    "group": "yangLibrary"
+                },
+                {
                     "command": "netconf.subscribe",
                     "when": "view == netconfConnectionMgmt && viewItem =~ /showSubscribe/",
                     "group": "inline@1"
@@ -454,6 +463,11 @@
                     "command": "netconf.commit",
                     "when": "view == netconfConnectionMgmt  && viewItem =~ /showCandidate/",
                     "group": "netconfCandidate@5"
+                },
+                {
+                    "command": "netconf.getSchemas",
+                    "when": "view == netconfConnectionMgmt  && viewItem =~ /yangLibrary/",
+                    "group": "yangLibrary"
                 }
             ]
         },
@@ -525,6 +539,13 @@
                     "type": "boolean",
                     "default": false
                 },
+                "netconf.yangRevisions": {
+                    "title": "Download YANG-modules with revisions",
+                    "markdownDescription": "Download YANG-modules with revisions. Default: false.",
+                    "scope": "machine",
+                    "type": "boolean",
+                    "default": false
+                },
                 "netconf.keysFile": {
                     "title": "Private keys-file",
                     "markdownDescription": "Private key file for key-based authentication. Default: ~/.ssh/id_rsa",
@@ -592,6 +613,7 @@
     },
     "dependencies": {
         "fast-xml-parser": "^4.1.3",
+        "he": "^1.2.0",
         "license-checker": "^25.0.1",
         "ssh2": ">=1.16.0",
         "xml-formatter": "^3.3.2"
