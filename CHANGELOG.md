@@ -89,6 +89,10 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Add message-id if not provided as part of the request
 * New operation to download device yang-library
 
+### [2.4.1]
+* Fix: netconf subscription icon/menu entry does not appear
+* Fix: adding netconf examples did not work
+
 ---
 
 **Copyright (c) 2025 NOKIA**

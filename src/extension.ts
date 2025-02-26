@@ -458,8 +458,8 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
             this.running = true;
             this.initializing = false;
-            
-            if (caplist.includes('notification'))
+
+            if (caplist.includes('notification:1.0') || caplist.includes('notification:2.0'))
                 this.showSubscribe = true;
     
             if (caplist.includes('candidate')) {
@@ -885,18 +885,19 @@ export function activate(context: vscode.ExtensionContext) {
     // --- example command --------------------------------------------------
 
     context.subscriptions.push(vscode.commands.registerCommand('netconf.examples', () => {
-		const gitPath   = vscode.workspace.getConfiguration('git').get('defaultCloneDirectory', os.homedir()).replace(/^~/, os.homedir());
-        const gitRepo   = vscode.workspace.getConfiguration("netconf").get("examplesURL", "https://github.com/nokia/netconf-examples.git");
-        const gitFolder = gitRepo.split('/').pop()?.replace('.git', '') ?? '';
+        const gitPath = vscode.workspace.getConfiguration('git').get('defaultCloneDirectory', '~').replace(/^~/, os.homedir());
+        const gitRepo = vscode.workspace.getConfiguration("netconf").get("examplesURL", "https://github.com/nokia/netconf-examples.git");
 
-        const gitUri = vscode.Uri.parse('file://'+gitPath);
-		const repoUri = vscode.Uri.joinPath(gitUri, gitFolder);
+        const examplesPath = vscode.Uri.joinPath(
+            vscode.Uri.file(gitPath),
+            gitRepo.split('/').pop()?.replace(/\.git$/, '') ?? ''
+        );
 
-		if (fs.existsSync(repoUri.fsPath)) {
-            // netconf-examples already exists, add to workspace
-			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: repoUri});
+		if (fs.existsSync(examplesPath.fsPath)) {
+            log.info(`Adding ${examplesPath.fsPath} to workspace`);
+			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: examplesPath});
 		} else {
-			// clone netconf-examples to add to workspace
+            log.info(`Cloning ${gitRepo} and ask the user to add to workspace`);
 			vscode.commands.executeCommand('git.clone', gitRepo, gitPath);
 		}
 	}));
