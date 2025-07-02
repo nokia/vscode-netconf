@@ -127,14 +127,16 @@ Following vendors and device families have been tested so far:
 | Vendor | Product Family | Router OS |
 |---|---|---|
 | Ciena | 5000, 8000 series | SAOS 10.9, 10.11 |
-| Cisco | NCS 540 series | IOS-XR 7.9.1 |
+| Cisco | NCS, xrv9k series| IOS-XR 7.3, 7.9, 7.10 |
 | Ericsson | 6000 series | IPOS 23.1 |
-| Huawei | NetEngine 8000 series | rel 8.22/1 |
-| Juniper | MX series | JunOS 22.4R1 |
+| Huawei | NetEngine 8000 series | rel 8.22 |
+| Juniper | MX series | JunOS 22.4 |
 | Nokia | SR families | SR OS |
 | Nokia | SRL families | SR Linux |
-| Ribbon | | |
-| H3C | | |
+| Ribbon | NPT-2100 | *dev-load*|
+| H3C | CR16005E | *dev-load* |
+| Arista | cEOS | EOS 4.33 |
+
 
 We don't mind to get access to 3rd party equipment (preferred virtual
 router/simulator images as virtual-machine or docker), test licenses and
