@@ -114,6 +114,17 @@ export class ncclient extends EventEmitter {
 			this.emit('error', 'SSH ERROR', err.toString().replace(/^Error:/, '').trim());
 		});
 
+		this.client.on('keyboard-interactive', async (
+			name: string,
+			instructions: string,
+			instructionsLang: string,
+			prompts: ssh2.Prompt[],
+			finish: (responses: string[]) => void
+		) => {
+			this.logger.info('Keyboard interactive!', name, instructions, instructionsLang, prompts);
+			finish([this.connectInfo.password || ""]);
+		});
+
 		this.client.on('connect', () => {
 			this.logger.info('SSH CONNECT EVENT');
 		});

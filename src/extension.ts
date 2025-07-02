@@ -176,36 +176,46 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
     }
 
     async clabAddHost(node: any) {
-        if (node?.label && node?.v4Address && node?.kind) {
-            const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
+        let sshTarget: string | undefined;
 
-            const newEntry : ConnectInfo = {
-                id: node.label.split('-').splice(1).join('/'),
-                host: node.label, // if IP address is desired: node.v4Address.split('/')[0];
-                username: vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin"),
-                port: vscode.workspace.getConfiguration("netconf").get("defaultPort", 830),
-                clientCapabilities: vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", ["urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"]),
-                keepaliveCountMax: 3,
-                keepaliveInterval: 5000    
-            };
-
-            if (servers.some(e => e.id === newEntry.id)) {
-                vscode.window.showErrorMessage('Connection already exists!');   
-                return;                             
-            }
-
-            servers.push(newEntry);
-            try {
-                await vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
-            }
-            catch (e) {
-                const errmsg = (e instanceof Error ? e.message : String(e)).replace(/^[A-Z0-9]+:/, '').trim();
-                vscode.window.showErrorMessage(errmsg);
-                log.error(errmsg);
-            }
+        if (node.name) {
+            sshTarget = node.name
+        } else if (node.v6Address) {
+            sshTarget = node.v6Address;
+        } else if (node.v4Address) {
+            sshTarget = node.v4Address
+        } else if (node.cID) {
+            sshTarget = node.cID
         } else {
 			log.warn("Information from containerlab is not yet available! Need to wait...");
-            vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
+            return vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
+        }
+
+        const servers : ConnectInfo[] = vscode.workspace.getConfiguration('netconf').get('serverList', []);
+
+        const newEntry : ConnectInfo = {
+            id: node.label,
+            host: sshTarget,
+            username: vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin"),
+            port: vscode.workspace.getConfiguration("netconf").get("defaultPort", 830),
+            clientCapabilities: vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", ["urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"]),
+            keepaliveCountMax: 3,
+            keepaliveInterval: 5000,
+            tryKeyboard: true
+        };
+
+        if (servers.some(e => e.id === newEntry.id)) {
+            return vscode.window.showErrorMessage('Connection already exists!');   
+        }
+
+        servers.push(newEntry);
+        try {
+            await vscode.workspace.getConfiguration('netconf').update('serverList', servers, vscode.ConfigurationTarget.Global);
+        }
+        catch (e) {
+            const errmsg = (e instanceof Error ? e.message : String(e)).replace(/^[A-Z0-9]+:/, '').trim();
+            vscode.window.showErrorMessage(errmsg);
+            log.error(errmsg);
         }
     }
 }
@@ -262,31 +272,35 @@ export class NetconfConnectionProvider implements vscode.TreeDataProvider<Netcon
     }
 
     clabConnect(node: any) {
-        if (node?.label && node?.v4Address && node?.kind) {
-            const host = node.v4Address.split('/')[0];
-            const user = vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin");
-            const port = vscode.workspace.getConfiguration("netconf").get("defaultPort", 830);
-            const caps = vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", [
-                "urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"
-            ]);
+        let sshTarget: string | undefined;
 
-            const serverInfo : ConnectInfo = {
-                id: node.label.split('-').splice(1).join('/'),
-                host: node.label,
-                username: user,
-                port: port,
-                clientCapabilities: caps,
-                keepaliveCountMax: 3,
-                keepaliveInterval: 5000    
-            };
-
-            const connectionEntry = new NetconfConnectionEntry(serverInfo, `(containerlab: ${node.kind})`);
-            this.connections.push(connectionEntry);
-            connectionEntry.onDidChange(() => this.refresh());
+        if (node.name) {
+            sshTarget = node.name
+        } else if (node.v6Address) {
+            sshTarget = node.v6Address;
+        } else if (node.v4Address) {
+            sshTarget = node.v4Address
+        } else if (node.cID) {
+            sshTarget = node.cID
         } else {
 			log.warn("Information from containerlab is not yet available! Need to wait...");
-            vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
+            return vscode.window.showWarningMessage('Information from containerlab is not yet available! Please wait and try again...');
         }
+
+        const serverInfo : ConnectInfo = {
+            id: node.label,
+            host: sshTarget,
+            username: vscode.workspace.getConfiguration("netconf").get("defaultUser", "admin"),
+            port: vscode.workspace.getConfiguration("netconf").get("defaultPort", 830),
+            clientCapabilities: vscode.workspace.getConfiguration("netconf").get("defaultCapabilities", ["urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"]),
+            keepaliveCountMax: 3,
+            keepaliveInterval: 5000,
+            tryKeyboard: true
+        };
+
+        const connectionEntry = new NetconfConnectionEntry(serverInfo, `(containerlab: ${node.kind})`);
+        this.connections.push(connectionEntry);
+        connectionEntry.onDidChange(() => this.refresh());
     }
 
     disconnect(connection: NetconfConnectionEntry) { connection.disconnect(); }

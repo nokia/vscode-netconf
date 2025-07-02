@@ -93,6 +93,10 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Fix: netconf subscription icon/menu entry does not appear
 * Fix: adding netconf examples did not work
 
+### [2.5.0]
+* Fix: Align approach to get label and host for SSH connect with Containerlab extension
+* Added support for `keyboard-interactive` auth (Note: enabled by default for better interop with Arista cEOS)
+
 ---
 
 **Copyright (c) 2025 NOKIA**
