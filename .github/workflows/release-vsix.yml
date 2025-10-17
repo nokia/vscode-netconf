@@ -1,0 +1,75 @@
+name: Build VSIX on Release
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build only, skip uploading artifacts and release attachments'
+        required: false
+        default: 'false'
+
+jobs:
+  build-vsix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Compile extension
+        run: npm run compile
+
+      - name: Package extension
+        run: npx @vscode/vsce package
+
+      - name: Prepare artifacts
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.vsix"
+          if [ ! -f "$PACKAGE_FILE" ]; then
+            echo "VSIX package $PACKAGE_FILE not found" >&2
+            exit 1
+          fi
+          LATEST_FILE="${PACKAGE_NAME}.vsix"
+          cp "$PACKAGE_FILE" "$LATEST_FILE"
+          echo "PACKAGE_FILE=$PACKAGE_FILE" >> "$GITHUB_ENV"
+          echo "LATEST_FILE=$LATEST_FILE" >> "$GITHUB_ENV"
+
+      - name: Upload workflow artifact
+        if: env.DRY_RUN != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-netconf-vsix
+          path: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.LATEST_FILE }}
+
+      - name: Attach VSIX to release
+        if: env.DRY_RUN != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.LATEST_FILE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
