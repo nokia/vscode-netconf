@@ -14,6 +14,13 @@ system of choice (Windows, macOS, Linux). It supports Remote SSH to simplify
 connectivity to lab environments using private IP addressing via SSH jump
 hosts and containerlab.
 
+## Download
+
+The latest packaged `.vsix` file is attached to every GitHub release and can
+always be downloaded from the following stable URL:
+
+<https://github.com/nokia/vscode-netconf/releases/latest/download/netconf-client.vsix>
+
 ## Build
 
 To build this extension yourself, you can use
