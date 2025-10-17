@@ -1,0 +1,61 @@
+name: Build VSIX on Release
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+jobs:
+  build-vsix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile extension
+        run: npm run compile
+
+      - name: Package extension
+        run: npx @vscode/vsce package
+
+      - name: Prepare artifacts
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.vsix"
+          if [ ! -f "$PACKAGE_FILE" ]; then
+            echo "VSIX package $PACKAGE_FILE not found" >&2
+            exit 1
+          fi
+          LATEST_FILE="${PACKAGE_NAME}.vsix"
+          cp "$PACKAGE_FILE" "$LATEST_FILE"
+          echo "PACKAGE_FILE=$PACKAGE_FILE" >> "$GITHUB_ENV"
+          echo "LATEST_FILE=$LATEST_FILE" >> "$GITHUB_ENV"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-netconf-vsix
+          path: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.LATEST_FILE }}
+
+      - name: Attach VSIX to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.LATEST_FILE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
