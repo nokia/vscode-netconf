@@ -5,12 +5,19 @@ on:
     types:
       - published
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build only, skip uploading artifacts and release attachments'
+        required: false
+        default: 'false'
 
 jobs:
   build-vsix:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -21,7 +28,12 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Compile extension
         run: npm run compile
@@ -44,6 +56,7 @@ jobs:
           echo "LATEST_FILE=$LATEST_FILE" >> "$GITHUB_ENV"
 
       - name: Upload workflow artifact
+        if: env.DRY_RUN != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: vscode-netconf-vsix
@@ -52,6 +65,7 @@ jobs:
             ${{ env.LATEST_FILE }}
 
       - name: Attach VSIX to release
+        if: env.DRY_RUN != 'true'
         uses: softprops/action-gh-release@v1
         with:
           files: |
