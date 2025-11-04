@@ -4,6 +4,13 @@
 
 Notable changes to the "vscode-netconf" extension are documented in this file.
 
+### [2.5.1]
+* Added `netconf.autoOpenResponses` setting to control automatic opening of 
+  response files when NETCONF responses are received from routers. When 
+  disabled, responses are still logged but won't automatically open new file 
+  tabs. User-initiated actions (clicking "Open" in notifications, sending 
+  custom RPCs) will still open files regardless of this setting.
+
 ### [1.1.0]
 * Client capabilities are now configurable in the `netconf.serverList`.
   By default, `vscode-netconf` is sending the `base:1.0` and `base:1.1`

@@ -103,6 +103,15 @@ part of the extension settings.
   `NETCONF: prettify` option. This is useful, when NETCONF servers return
   minified XML.
 
+* **Option: Auto-open Response Files**
+
+  The `NETCONF: Auto-open Response Files` setting controls whether new file 
+  tabs are automatically opened when NETCONF responses are received from the 
+  router. When disabled, responses are still logged but won't automatically 
+  open new file tabs. User-initiated actions (like clicking "Open" on 
+  notifications or manually sending custom RPCs) will still open files 
+  regardless of this setting. Default: enabled.
+
 * **Option: SSH debug**
 
   To troubleshoot SSHv2 related issues, like handshake problems around

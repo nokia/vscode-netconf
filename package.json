@@ -593,6 +593,13 @@
                     "scope": "machine",
                     "type": "string",
                     "default": "https://github.com/nokia/netconf-examples.git"
+                },
+                "netconf.autoOpenResponses": {
+                    "title": "Auto-open Response Files",
+                    "markdownDescription": "Automatically open new file tabs when NETCONF responses are received from the router. Default: true.",
+                    "scope": "machine",
+                    "type": "boolean",
+                    "default": true
                 }
             }
         }
