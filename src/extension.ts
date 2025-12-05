@@ -161,7 +161,8 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
             username: user,
             clientCapabilities: caps,
             keepaliveCountMax: 3,
-            keepaliveInterval: 5000
+            keepaliveInterval: 5000,
+            tryKeyboard: true
         };
         servers.push(newEntry);
         
