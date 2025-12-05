@@ -58,7 +58,7 @@ async function openSettingsEntry(section: string, key: string, value: string) {
 }
 
 function showXmlDocument(data: string) {
-    const prettify : boolean = vscode.workspace.getConfiguration('netconf').get('prettify') || false;
+    const prettify : boolean = vscode.workspace.getConfiguration('netconf').get('prettify', false);
 
     if (prettify) {
         data = xmlFormat(data, {
@@ -693,7 +693,9 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 	async rpc(request : string) {
         this.client?.rpc(request, 300, (msgid : string, msg : string) => {
             this.logs.debug(`rpc #${msgid} done`);
-            showXmlDocument(msg);
+            const autoOpen: boolean = vscode.workspace.getConfiguration('netconf').get('autoOpenResponses', true);
+            if (autoOpen)
+                showXmlDocument(msg);
         });
 	}
     
@@ -701,7 +703,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get/></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
-            showXmlDocument(msg);
+            showXmlDocument(msg); // always show netconf <get> responses
             this.refresh();
 		});		
 	}
@@ -710,7 +712,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
-            showXmlDocument(msg);
+            showXmlDocument(msg);  // always show netconf <get-config> responses
             this.refresh();
 		});		
 	}

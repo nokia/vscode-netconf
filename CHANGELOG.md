@@ -97,6 +97,12 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Fix: Align approach to get label and host for SSH connect with Containerlab extension
 * Added support for `keyboard-interactive` auth (Note: enabled by default for better interop with Arista cEOS)
 
+### [2.5.2]
+* Added `netconf.autoOpenResponses` setting to control automatic opening of 
+  response files when NETCONF responses are received from routers. When 
+  disabled, responses are still logged but won't automatically open new file 
+  tabs.
+
 ---
 
 **Copyright (c) 2025 NOKIA**
