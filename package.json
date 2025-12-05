@@ -596,7 +596,7 @@
                 },
                 "netconf.autoOpenResponses": {
                     "title": "Auto-open Response Files",
-                    "markdownDescription": "Automatically open new file tabs when NETCONF responses are received from the router. Default: true.",
+                    "markdownDescription": "Automatically open new text-editor tabs for NETCONF RPC responses. Default: true.",
                     "scope": "window",
                     "type": "boolean",
                     "default": true

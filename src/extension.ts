@@ -57,8 +57,7 @@ async function openSettingsEntry(section: string, key: string, value: string) {
     }, refreshTimer);
 }
 
-function showXmlDocument(data: string, forceOpen: boolean = false) {
-    const autoOpen: boolean = vscode.workspace.getConfiguration('netconf').get('autoOpenResponses', true);
+function showXmlDocument(data: string) {
     const prettify : boolean = vscode.workspace.getConfiguration('netconf').get('prettify', false);
 
     if (prettify) {
@@ -68,11 +67,6 @@ function showXmlDocument(data: string, forceOpen: boolean = false) {
             lineSeparator: '\r\n',
             whiteSpaceAtEndOfSelfclosingTag: true
         });
-    }
-    
-    if (!autoOpen && !forceOpen) {
-        log.info('NETCONF response received:\n' + data);
-        return;
     }
 
     vscode.workspace.openTextDocument({content: data, language: 'xml'}).then((xmldoc) => {
@@ -167,7 +161,8 @@ export class NetconfServerProvider implements vscode.TreeDataProvider<NetconfSer
             username: user,
             clientCapabilities: caps,
             keepaliveCountMax: 3,
-            keepaliveInterval: 5000
+            keepaliveInterval: 5000,
+            tryKeyboard: true
         };
         servers.push(newEntry);
         
@@ -473,7 +468,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 
         this.client.on('connected', (hello: string, caplist: string[], sessionId: Number) => {
             vscode.window.showInformationMessage(`Session-id: ${sessionId} | NETCONF server capabilities: ${caplist.join(' ')}`, 'Open', 'Cancel').then( async (action) => {
-                if ('Open' === action) showXmlDocument(hello, true);
+                if ('Open' === action) showXmlDocument(hello);
             });
 
             this.running = true;
@@ -522,14 +517,14 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         });
     
         this.client.on('rpcResponse', (msgid, data, elapsed) => {
-            showXmlDocument(data);
+            // showXmlDocument(data);
             this.refresh();
         });
     
         this.client.on('rpcError', (msgid, errmsg, msg, elapsed) => {
             vscode.window.showWarningMessage(`netconf #${msgid}: failed, time=${elapsed}`, 'Open', 'Cancel').then( async (action) => {
                 if ('Open' === action)
-                    showXmlDocument(msg, true);
+                    showXmlDocument(msg);
             });
             this.refresh();
         });
@@ -537,7 +532,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         this.client.on('netconfError', (errmsg, msg) => {
             vscode.window.showWarningMessage(errmsg, 'Open', 'Cancel').then( async (action) => {
                 if ('Open' === action)
-                    showXmlDocument(msg, true);
+                    showXmlDocument(msg);
             });
             this.initializing = false;
             this.refresh();
@@ -698,7 +693,9 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 	async rpc(request : string) {
         this.client?.rpc(request, 300, (msgid : string, msg : string) => {
             this.logs.debug(`rpc #${msgid} done`);
-            // Response will be shown by rpcResponse event handler with forceOpen
+            const autoOpen: boolean = vscode.workspace.getConfiguration('netconf').get('autoOpenResponses', true);
+            if (autoOpen)
+                showXmlDocument(msg);
         });
 	}
     
@@ -706,7 +703,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get/></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
-            // Response will be shown by rpcResponse event handler with forceOpen
+            showXmlDocument(msg); // always show netconf <get> responses
             this.refresh();
 		});		
 	}
@@ -715,7 +712,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
-            // Response will be shown by rpcResponse event handler with forceOpen
+            showXmlDocument(msg);  // always show netconf <get-config> responses
             this.refresh();
 		});		
 	}
