@@ -517,7 +517,15 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
         });
     
         this.client.on('rpcResponse', (msgid, data, elapsed) => {
-            // showXmlDocument(data);
+            const autoOpen: boolean = vscode.workspace.getConfiguration('netconf').get('autoOpenResponses', true);
+            if (autoOpen) {
+                showXmlDocument(data);
+            } else {
+                vscode.window.showInformationMessage(`netconf #${msgid}: success, time=${elapsed}`, 'Open', 'Cancel').then( async (action) => {
+                    if ('Open' === action)
+                        showXmlDocument(data);
+                });
+            }
             this.refresh();
         });
     
@@ -693,9 +701,8 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 	async rpc(request : string) {
         this.client?.rpc(request, 300, (msgid : string, msg : string) => {
             this.logs.debug(`rpc #${msgid} done`);
-            const autoOpen: boolean = vscode.workspace.getConfiguration('netconf').get('autoOpenResponses', true);
-            if (autoOpen)
-                showXmlDocument(msg);
+            // showXmlDocument(msg);
+            this.refresh();
         });
 	}
     
@@ -703,7 +710,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get/></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
-            showXmlDocument(msg); // always show netconf <get> responses
+            // showXmlDocument(msg);
             this.refresh();
 		});		
 	}
@@ -712,7 +719,7 @@ export class NetconfConnectionEntry extends vscode.TreeItem {
 		const request = '<?xml version="1.0" encoding="UTF-8"?><rpc message-id="getcfg" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><get-config><source><running/></source></get-config></rpc>';
 		this.client?.rpc(request, 300, (msgid : string, msg : string) => {
 			this.logs.debug(`rpc #${msgid} done`);
-            showXmlDocument(msg);  // always show netconf <get-config> responses
+            // showXmlDocument(msg);
             this.refresh();
 		});		
 	}
@@ -902,8 +909,10 @@ export function activate(context: vscode.ExtensionContext) {
     // --- example command --------------------------------------------------
 
     context.subscriptions.push(vscode.commands.registerCommand('netconf.examples', () => {
-        const gitPath = vscode.workspace.getConfiguration('git').get('defaultCloneDirectory', '~').replace(/^~/, os.homedir());
-        const gitRepo = vscode.workspace.getConfiguration("netconf").get("examplesURL", "https://github.com/nokia/netconf-examples.git");
+        let gitPath = vscode.workspace.getConfiguration('git').get<string>('defaultCloneDirectory') || os.homedir();
+        let gitRepo = vscode.workspace.getConfiguration("netconf").get<string>("examplesURL") || "https://github.com/nokia/netconf-examples.git";
+
+        gitPath = gitPath.replace(/^~/, os.homedir());
 
         const examplesPath = vscode.Uri.joinPath(
             vscode.Uri.file(gitPath),
@@ -912,7 +921,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		if (fs.existsSync(examplesPath.fsPath)) {
             log.info(`Adding ${examplesPath.fsPath} to workspace`);
-			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: examplesPath});
+			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: examplesPath});
 		} else {
             log.info(`Cloning ${gitRepo} and ask the user to add to workspace`);
 			vscode.commands.executeCommand('git.clone', gitRepo, gitPath);

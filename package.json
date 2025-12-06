@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "2.5.2",
+    "version": "2.6.0",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -57,11 +57,13 @@
             "netconf": [
                 {
                     "id": "netconfServers",
-                    "name": "NETWORK DEVICES"
+                    "name": "NETCONF DEVICES",
+                    "icon": "$(vm-connect)"
                 },
                 {
                     "id": "netconfConnectionMgmt",
-                    "name": "ACTIVE CONNECTIONS",
+                    "name": "NETCONF CONNECTIONS",
+                    "icon": "$(vm-running)",
                     "type": "tree",
                     "visibility": "visible"
                 }
@@ -70,6 +72,7 @@
                 {
                     "id": "netconfConnections",
                     "name": "NETCONF CONNECTIONS",
+                    "icon": "$(vm-running)",
                     "type": "tree",
                     "visibility": "collapsed"
                 }
@@ -595,9 +598,9 @@
                     "default": "https://github.com/nokia/netconf-examples.git"
                 },
                 "netconf.autoOpenResponses": {
-                    "title": "Auto-open Response Files",
-                    "markdownDescription": "Automatically open new text-editor tabs for NETCONF RPC responses. Default: true.",
-                    "scope": "window",
+                    "title": "Automatically Open Responses",
+                    "markdownDescription": "Open new editor windows for successful NETCONF RPC responses. Default: true.",
+                    "scope": "machine",
                     "type": "boolean",
                     "default": true
                 }

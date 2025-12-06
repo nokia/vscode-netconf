@@ -97,11 +97,12 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 * Fix: Align approach to get label and host for SSH connect with Containerlab extension
 * Added support for `keyboard-interactive` auth (Note: enabled by default for better interop with Arista cEOS)
 
-### [2.5.2]
-* Added `netconf.autoOpenResponses` setting to control automatic opening of 
-  response files when NETCONF responses are received from routers. When 
-  disabled, responses are still logged but won't automatically open new file 
-  tabs.
+### [2.6.0]
+*	Improved handling of NETCONF RPC responses:
+    *	If the response is simply `<ok>`, an informational popup is shown instead of opening an editor.
+    * For all other responses, the notification now includes a button allowing the user to open the response in a new editor window.
+    * A new setting, `netconf.autoOpenResponses` (default: true), enables automatic opening of non-<ok> responses in an editor.
+* When creating new connections, the `tryKeyboard` authentication option is now enabled by default.
 
 ---
 
