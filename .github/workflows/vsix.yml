@@ -2,9 +2,7 @@ name: Build VSIX on Release
 
 on:
   release:
-    types:
-      - edited
-      - released
+    types: [created, published, edited, released]
   workflow_dispatch:
 
 jobs:
@@ -36,7 +34,9 @@ jobs:
         run: npx @vscode/vsce package
 
       - name: Publish extension
-        run: npx @vscode/vsce publish --pat ${{ secrets.VSCE_TOKEN }}
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+        run: npx @vscode/vsce publish --pat "$VSCE_TOKEN"
 
       - name: Prepare artifacts
         run: |
