@@ -35,6 +35,9 @@ jobs:
       - name: Package extension
         run: npx @vscode/vsce package
 
+      - name: Publish to vsCode Marketplace
+        run: npx @vscode/vsce publish --pat ${{ secrets.VSCE_TOKEN }}
+
       - name: Prepare artifacts
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
@@ -65,8 +68,3 @@ jobs:
             ${{ env.LATEST_FILE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to vsCode Marketplace
-        run: npx @vscode/vsce publish --pat ${{ secrets.VSCE_TOKEN }}
-        env:
-          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
