@@ -64,3 +64,8 @@ jobs:
             ${{ env.LATEST_FILE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to vsCode Marketplace
+        run: npx @vscode/vsce publish --pat ${{ secrets.VSCE_TOKEN }}
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
