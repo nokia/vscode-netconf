@@ -2,7 +2,7 @@ name: Build VSIX on Release
 
 on:
   release:
-    types: [created, published, edited, released]
+    types: [published]
   workflow_dispatch:
 
 jobs:
