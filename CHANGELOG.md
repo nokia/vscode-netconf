@@ -104,6 +104,9 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
     * A new setting, `netconf.autoOpenResponses` (default: true), enables automatic opening of non-<ok> responses in an editor.
 * When creating new connections, the `tryKeyboard` authentication option is now enabled by default.
 
+### [2.6.1]
+* Use git shell-command to make cloning the NETCONF examples more robust.
+
 ---
 
 **Copyright (c) 2025 NOKIA**

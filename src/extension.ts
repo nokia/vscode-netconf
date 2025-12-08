@@ -13,6 +13,8 @@ import * as ssh2 from 'ssh2';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+import { spawn } from 'child_process';
+
 import xmlFormat from 'xml-formatter';
 
 import { ncclient } from './ncclient';
@@ -907,8 +909,8 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // --- example command --------------------------------------------------
-
-    context.subscriptions.push(vscode.commands.registerCommand('netconf.examples', () => {
+    
+    context.subscriptions.push(vscode.commands.registerCommand('netconf.examples', async () => {
         let gitPath = vscode.workspace.getConfiguration('git').get<string>('defaultCloneDirectory') || os.homedir();
         let gitRepo = vscode.workspace.getConfiguration("netconf").get<string>("examplesURL") || "https://github.com/nokia/netconf-examples.git";
 
@@ -919,13 +921,50 @@ export function activate(context: vscode.ExtensionContext) {
             gitRepo.split('/').pop()?.replace(/\.git$/, '') ?? ''
         );
 
-		if (fs.existsSync(examplesPath.fsPath)) {
+        const openExamplesPath = vscode.Uri.joinPath(examplesPath, 'LICENSE');
+
+        if (fs.existsSync(examplesPath.fsPath)) {
             log.info(`Adding ${examplesPath.fsPath} to workspace`);
-			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: examplesPath});
-		} else {
-            log.info(`Cloning ${gitRepo} and ask the user to add to workspace`);
-			vscode.commands.executeCommand('git.clone', gitRepo, gitPath);
-		}
+            await vscode.commands.executeCommand('workbench.view.explorer');
+            vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: examplesPath});
+
+            await new Promise(r => setTimeout(r, 1500));
+            log.info(`Showing ${openExamplesPath.fsPath} in workspace`);
+            await vscode.commands.executeCommand('revealInExplorer', openExamplesPath);
+        } else {
+            log.warn(`❌ Git clone failed`);
+
+            log.info(`Cloning ${gitRepo} using git shell-command...`);
+            const child = spawn("git", ["clone", gitRepo], {cwd: gitPath, shell: true});
+
+            child.stdout.on("data", (data) => log.debug(data.toString()) );
+            child.stderr.on("data", (data) => log.debug(data.toString()) );
+
+            child.on("close", async (code) => {
+                if (code === 0) {
+                    log.info("✅ Git clone completed successfully!");
+
+                    log.info(`Adding ${examplesPath.fsPath} to workspace`);
+                    vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: examplesPath});
+
+                    vscode.window.showInformationMessage('NETCONF examples cloned successfully!', 'Open').then( async (action) => {
+                        if ('Open' === action) {
+                            log.info(`Showing ${openExamplesPath.fsPath} in workspace`);
+                            await vscode.commands.executeCommand('workbench.view.explorer');
+                            await vscode.commands.executeCommand('revealInExplorer', openExamplesPath);
+                        }
+                    });
+                } else {
+                    log.warn(`❌ Git clone failed with exit code ${code}`);
+                    vscode.window.showErrorMessage('Failed to clone NETCONF examples!');
+                }
+            });
+
+            child.on("error", (err) => {
+                log.error(`🔥 Failed to run git shell-command as sub-process: ${err.message}`);
+                vscode.window.showErrorMessage('Failed to clone NETCONF examples!');
+            });
+        }
 	}));
 
 	// --- connect command --------------------------------------------------
