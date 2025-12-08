@@ -107,6 +107,9 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 ### [2.6.1]
 * Use git shell-command to make cloning the NETCONF examples more robust.
 
+### [2.6.2]
+* CI/CD updates.
+
 ---
 
 **Copyright (c) 2025 NOKIA**
