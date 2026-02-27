@@ -1,0 +1,129 @@
+/* Path bar: chips, path input, copy button. */
+#path-bar {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  position: relative;
+  min-height: 28px;
+}
+#path-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+#path-chips .path-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+#path-chips .path-chip:nth-child(3n + 1) {
+  background: var(--vscode-textLink-foreground);
+  color: var(--vscode-editor-background);
+}
+#path-chips .path-chip:nth-child(3n + 2) {
+  background: var(--vscode-charts-green, #0e7d3e);
+  color: var(--vscode-editor-background);
+}
+#path-chips .path-chip:nth-child(3n + 3) {
+  background: var(--vscode-charts-purple, #8762a8);
+  color: var(--vscode-editor-background);
+}
+#path-chips .path-chip:hover {
+  filter: brightness(1.15);
+}
+
+#path-input-wrap {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+#path-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+/* Hide placeholder when suggestions are shown so the ghost (proposal) is visible */
+#path-input-wrap.has-suggestions #path-input::placeholder {
+  opacity: 0;
+}
+#path-input:focus {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+  border-color: var(--vscode-focusBorder);
+}
+#path-input-ghost {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  white-space: pre;
+  color: var(--vscode-input-placeholderForeground);
+  font: inherit;
+}
+#path-input-wrap .path-input-measure {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  font: inherit;
+}
+#path-input-ghost.no-match {
+  color: var(--vscode-inputValidation-errorForeground, #f14c4c);
+}
+
+#copy-path-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  cursor: pointer;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+#copy-path-btn:hover {
+  color: var(--vscode-foreground);
+  background: var(--vscode-toolbar-hoverBackground);
+}
+#copy-path-btn svg {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  fill: currentColor;
+}
+#copy-path-btn .copy-icon {
+  display: inline-block;
+}
+#copy-path-btn .check-icon {
+  display: none;
+}
+#copy-path-btn.copied .copy-icon {
+  display: none;
+}
+#copy-path-btn.copied .check-icon {
+  display: inline-block;
+}

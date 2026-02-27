@@ -1,0 +1,109 @@
+/* Element view: dict rows, leaf-list chips (also used in table cells). */
+.dict-row-attr .dict-key {
+  color: var(--vscode-textLink-foreground);
+  font-style: italic;
+}
+.dict-row-attr .dict-val {
+  color: var(--vscode-textLink-foreground);
+}
+
+.leaf-list-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px 2px 8px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+.dict-view .leaf-list-chip:nth-child(3n + 1),
+.cell .leaf-list-chip:nth-child(3n + 1) {
+  background: var(--vscode-textLink-foreground);
+  color: var(--vscode-editor-background);
+}
+.dict-view .leaf-list-chip:nth-child(3n + 2),
+.cell .leaf-list-chip:nth-child(3n + 2) {
+  background: var(--vscode-charts-green, #0e7d3e);
+  color: var(--vscode-editor-background);
+}
+.dict-view .leaf-list-chip:nth-child(3n + 3),
+.cell .leaf-list-chip:nth-child(3n + 3) {
+  background: var(--vscode-charts-purple, #8762a8);
+  color: var(--vscode-editor-background);
+}
+.leaf-list-chip .chip-delete {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.8;
+  padding: 0 2px;
+  font-size: 0.85em;
+  line-height: 1;
+}
+.leaf-list-chip .chip-delete:hover {
+  opacity: 1;
+}
+.leaf-list-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px dashed var(--vscode-input-border, var(--vscode-panel-border));
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  font-size: 14px;
+}
+.leaf-list-add:hover {
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-foreground);
+}
+.leaf-list-add-input {
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  font: inherit;
+}
+.leaf-list-add-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+/* Collapsible container toggle */
+.dict-collapse-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  border-radius: 2px;
+}
+.dict-collapse-toggle:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.dict-collapse-toggle:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.dict-children {
+  /* Wrapper for nested dict rows; visibility toggled by collapse button */
+}
+.dict-row-container .dict-collapse-toggle {
+  margin-left: auto;
+}
+.dict-row-container:hover {
+  background: rgba(127, 127, 127, 0.04);
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 28%, transparent);
+  box-shadow: inset 0 1px 0 var(--vscode-panel-border), inset 0 -1px 0 var(--vscode-panel-border);
+}

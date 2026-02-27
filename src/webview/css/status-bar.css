@@ -1,0 +1,18 @@
+/* Status bar: filename and entry count. */
+#status-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#status-bar .status-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+#status-bar .status-count {
+  flex-shrink: 0;
+}
