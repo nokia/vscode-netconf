@@ -2,51 +2,37 @@
 
 ## About
 
-This vsCode extension implements an interactive NETCONF client, that runs
-against NETCONF servers, like NOKIA IP Routers powered by SR OS and SRLinux.
-By integrating NETCONF with Visual Studio Code, users will be able to extend
-the industry leading open-source code editor and integrated development
-environment by the ability to communicate with latest networking equipment
-using the NETCONF protocol.
+This extension adds an interactive NETCONF client to Visual Studio Code, connecting to NETCONF servers such as NOKIA IP routers (SR OS and SRLinux). It brings NETCONF into the editor so you can manage modern network equipment directly from VS Code using the standard NETCONF protocol.
 
-The extension is implemented in native TypeScript and works on your desktop
-system of choice (Windows, macOS, Linux). It supports Remote SSH to simplify
-connectivity to lab environments using private IP addressing via SSH jump
-hosts and containerlab.
+The extension is written in TypeScript and runs on Windows, macOS, and Linux. Remote SSH is supported for lab access over private networks, including via SSH jump hosts and containerlab. It has been validated with VS Code, code-server, and Cursor.
 
 ## Build
 
-To build this extension yourself, you can use
-["Visual Studio Code Extensions"](https://code.visualstudio.com/api/working-with-extensions/publishing-extension).
+**Prerequisites:** [Node.js](https://nodejs.org/) and npm.
+
+Clone the repository, install dependencies, and package the extension (compile runs automatically via `vscode:prepublish`). See the [VS Code publishing documentation](https://code.visualstudio.com/api/working-with-extensions/publishing-extension) for more on `vsce` and publishing.
 
 ```bash
-$ git clone https://github.com/nokia/vscode-netconf
-$ cd vscode-netconf
-$ npm install .
-$ vsce package
+git clone https://github.com/nokia/vscode-netconf
+cd vscode-netconf
+npm install
+npx vsce package
 ```
+
+This produces a `.vsix` file that can be installed directly in VS Code and Cursor.
 
 ## Contributions
 
-We are happy to have people contributing to this project. If you have feature
-request or if you want to report misfunctions, feel free to raise
-[Issues](https://github.com/nokia/netconf-examples/issues).
-
-If you want to contribute code-changes, you can contribute directly via
-normal pull-request procedure.
+Contributions are welcome. Open an [issue](https://github.com/nokia/vscode-netconf/issues) for bugs or ideas, or send a pull request. We’re happy to review and merge.
 
 ## Getting Started!
 
 ![getting-started](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/getting-started.gif)
 
-Netconf server settings are persisted as part of the extension settings.
-For common cases like adding or deleting server entries, open the
-NETCONF view from the activity bar and you will have direct access to
+NETCONF server settings are persisted as part of the extension settings. For common cases like adding or deleting server entries, open the NETCONF view from the activity bar and you will have direct access to
 the server and connection list.
 
-If you require advanced settings, like persisting the server passwords
-or adjusting the client capabilities, you will find those options as
-part of the extension settings.
+If you require advanced settings, like persisting the server passwords or adjusting the client capabilities, you will find those options as part of the extension settings.
 
 ## Supported Features
 
@@ -128,7 +114,42 @@ part of the extension settings.
   Default settings can be tuned as needed.
 
   ![using-clab](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/using-clab.gif)
-  
+
+* **XML Navigator**
+
+  The extension includes XML Navigator to navigate, view, and edit
+  NETCONF requests and responses side-by-side with the text editor.
+
+  The XML Navigator works like the Markdown preview: once you have an XML file
+  open, launch it from the Command Palette or the editor title bar button. The
+  Navigator opens in a split pane beside the XML editor and stays in sync with
+  the active document. You only need one XML Navigator at a time; if you switch
+  to a different XML document, the Navigator follows that document.
+
+  The Navigator has no knowledge of the underlying schema (YANG or XSD). It
+  detects tables automatically when it finds sibling elements with the same
+  XML tag name. As a result, there is no type validation and no handling of
+  concepts such as list keys.
+
+  Use the navigation bar to browse the element tree—it builds the path segment
+  by segment. Depending on context you see either Element View or Table View.
+  Edits are applied to the underlying XML document and support Undo/Redo.
+
+  Sync from editor to Navigator is not automatic: use the context menu on
+  selected XML tags to update the Navigator to the corresponding path. When
+  you change context or focus an input in the Navigator, it shows you the
+  corresponding element or section in the editor.
+
+  Table View lets you edit directly, spreadsheet-style. Tables are flattened to
+  include nested child containers.
+
+  *Experimental:* Multi-cell copy, paste, and delete, as well as editing nested
+  tables, are still experimental and may fail or produce invalid XML. Always
+  review the resulting XML after editing.
+
+  ![using-xml-navigator](https://raw.githubusercontent.com/nokia/vscode-netconf/master/resources/using-xml-navigator.gif)
+
+
 ## Compatibility
 
 Following vendors and device families have been tested so far:
@@ -178,4 +199,4 @@ compatibility and extend the capabilities.
 This project is licensed under the BSD 3-Clause license - see the
 [LICENSE](https://github.com/nokia/vscode-netconf/blob/master/LICENSE).
 
-**Copyright (c) 2025 NOKIA**
+**Copyright (c) 2026 NOKIA**

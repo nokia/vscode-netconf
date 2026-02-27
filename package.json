@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "2.6.2",
+    "version": "3.0.0",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -36,7 +36,8 @@
         "Other"
     ],
     "activationEvents": [
-        "onStartupFinished"
+        "onStartupFinished",
+        "onLanguage:xml"
     ],
     "repository": {
         "type": "git",
@@ -180,9 +181,61 @@
                 "command": "netconf.getSchemas",
                 "title": "Download YANG modules",
                 "icon": "$(cloud-download)"
+            },
+            {
+                "command": "netconf.xml.openNavigator",
+                "title": "Open XML Navigator",
+                "category": "XML",
+                "icon": "$(open-preview)"
+            },
+            {
+                "command": "netconf.xml.revealInNavigator",
+                "title": "Reveal in XML Navigator",
+                "category": "XML"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "netconf.xml.openNavigator",
+                "key": "shift+ctrl+v",
+                "mac": "shift+cmd+v",
+                "when": "editorLangId == xml"
             }
         ],
         "menus": {
+            "editor/context": [
+                {
+                    "command": "netconf.xml.revealInNavigator",
+                    "when": "editorLangId == xml",
+                    "group": "navigation@1"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "netconf.xml.openNavigator",
+                    "when": "editorLangId == xml",
+                    "group": "navigation"
+                }
+            ],
+            "editor/title/context": [
+                {
+                    "command": "netconf.xml.openNavigator",
+                    "when": "resourceLangId == xml",
+                    "group": "1_open"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "netconf.xml.openNavigator",
+                    "when": "editorLangId == xml",
+                    "group": "navigation"
+                },
+                {
+                    "command": "netconf.xml.revealInNavigator",
+                    "when": "editorLangId == xml",
+                    "group": "navigation"
+                }
+            ],
             "editor/title/run": [
                 {
                     "when": "resourceLangId == xml",
@@ -603,32 +656,52 @@
                     "scope": "machine",
                     "type": "boolean",
                     "default": true
+                },
+                "netconf.xml.showAttributes": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show XML attributes in Element View (dict)."
                 }
             }
         }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "compile": "tsc -p ./ && node scripts/embed-webview-css.js && npm run compile:webview",
+        "compile:webview": "esbuild src/webview/main.ts --bundle --outfile=out/webview.js --format=iife --platform=browser",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
+        "test": "vitest run",
+        "test:unit": "vitest run",
+        "test:unit:watch": "vitest",
+        "test:integration": "node out/test/run-tests.js",
         "lint": "eslint src --ext ts"
     },
     "devDependencies": {
+        "@types/mocha": "^10.0.10",
         "@types/node": "^20.19.25",
         "@types/ssh2": ">=1.15.0",
         "@types/vscode": "^1.95.0",
-        "@typescript-eslint/eslint-plugin": "^5.45.0",
+        "@typescript-eslint/eslint-plugin": "^8.18.0",
+        "@typescript-eslint/parser": "^8.18.0",
+        "@vscode/test-electron": "^2.5.2",
         "@vscode/vsce": "^3.6.2",
+        "esbuild": "^0.19.0",
         "eslint": "^8.57.1",
-        "typescript": "^5.0.4"
+        "mocha": "^11.7.5",
+        "typescript": "^5.0.4",
+        "vitest": "^4.0.18"
     },
     "dependencies": {
-        "fast-xml-parser": "^4.1.3",
+        "@vscode/codicons": "^0.0.44",
+        "@xmldom/xmldom": "^0.8.10",
+        "fast-xml-parser": "^4.3.2",
         "he": "^1.2.0",
         "license-checker": "^25.0.1",
+        "sax": "^1.4.4",
         "ssh2": ">=1.16.0",
-        "xml-formatter": "^3.3.2"
+        "xml-formatter": "^3.3.2",
+        "xpath": "^0.0.32"
     },
     "__metadata": {
         "isApplicationScoped": false,

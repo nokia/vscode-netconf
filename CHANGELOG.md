@@ -110,6 +110,9 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 ### [2.6.2]
 * CI/CD updates.
 
+### [3.0.0]
+* **XML Navigator** — Add a new preview for navigating, viewing, and editing NETCONF requests and responses in a secondary view beside the editor. It supports editable Element View and Table View. It allows quick navigation using a path-based navigation bar with suggest and autocompletion.
+
 ---
 
-**Copyright (c) 2025 NOKIA**
+**Copyright (c) 2026 NOKIA**

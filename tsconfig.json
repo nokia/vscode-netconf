@@ -1,17 +1,17 @@
 {
-	"compilerOptions": {
-		"module": "commonjs",
-		"moduleResolution": "node",
-		"target": "ES6",
-		"outDir": "out",
-		"lib": [
-			"ES6"
-		],
-		"types": ["vscode"],
-		"sourceMap": true,
-		"rootDir": "src",
-		"strict": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true
-	}
+    "compilerOptions": {
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "ES6",
+        "outDir": "out",
+        "lib": ["ES6"],
+        "types": ["node", "vscode", "mocha"],
+        "sourceMap": true,
+        "rootDir": "src",
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules", "src/webview", "src/xmlNavigator", "src/common/**/*.test.ts", "src/parser/**/*.test.ts", "src/webview-backend/**/*.test.ts"]
 }
