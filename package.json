@@ -2,7 +2,7 @@
     "name": "netconf-client",
     "displayName": "NETCONF client for Visual Studio Code",
     "description": "NETCONF client by Nokia",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "author": {
         "name": "Sven Wisotzky",
         "url": "https://www.linkedin.com/in/sven-wisotzky-44788333"
@@ -112,14 +112,14 @@
                 "icon": "$(vm-connect)"
             },
             {
-                "command": "netconf.clabConnect",
-                "title": "NETCONF: connect",
-                "icon": "$(vm-connect)"
+                "command": "netconf.ssh.clabConnect",
+                "title": "NETCONF",
+                "icon": "$(terminal)"
             },
             {
-                "command": "netconf.clabAddHost",
-                "title": "NETCONF: add managed device",
-                "icon": "$(plus)"
+                "command": "netconf.save.clabAddHost",
+                "title": "Manage NETCONF Device",
+                "icon": "$(repo-clone)"
             },
             {
                 "command": "netconf.rpc",
@@ -255,21 +255,6 @@
                 }
             ],
             "view/item/context": [
-                {
-                    "command": "netconf.clabConnect",
-                    "when": "viewItem == containerlabContainer",
-                    "group": "inline"
-                },
-                {
-                    "command": "netconf.clabConnect",
-                    "when": "viewItem == containerlabContainer",
-                    "group": "netconfNavigation@1"
-                },
-                {
-                    "command": "netconf.clabAddHost",
-                    "when": "viewItem == containerlabContainer",
-                    "group": "netconfNavigation@2"
-                },
                 {
                     "command": "netconf.connect",
                     "when": "view == netconfServers",
@@ -524,6 +509,21 @@
                     "command": "netconf.getSchemas",
                     "when": "view == netconfConnectionMgmt  && viewItem =~ /yangLibrary/",
                     "group": "yangLibrary"
+                }
+            ],
+            "containerlab/node/context": [
+                {
+                    "command": "netconf.ssh.clabConnect",
+                    "group": "inline"
+                    
+                },
+                {
+                    "command": "netconf.ssh.clabConnect",
+                    "group": "access"
+                },
+                {
+                    "command": "netconf.save.clabAddHost",
+                    "group": "tools"
                 }
             ]
         },

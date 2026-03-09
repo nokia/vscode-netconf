@@ -113,6 +113,9 @@ Notable changes to the "vscode-netconf" extension are documented in this file.
 ### [3.0.0]
 * **XML Navigator** — Add a new preview for navigating, viewing, and editing NETCONF requests and responses in a secondary view beside the editor. It supports editable Element View and Table View. It allows quick navigation using a path-based navigation bar with suggest and autocompletion.
 
+### [3.1.0]
+* Updated command contributions for containerlab extension intergation based on [#565](https://github.com/srl-labs/vscode-containerlab/issues/565). Raised another request [#568](https://github.com/srl-labs/vscode-containerlab/issues/568) to provide better control for menu structure and icon choices.
+
 ---
 
 **Copyright (c) 2026 NOKIA**
