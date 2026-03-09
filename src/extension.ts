@@ -225,8 +225,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// --- containerlab commands --------------------------------------------
     
-	context.subscriptions.push(vscode.commands.registerCommand('netconf.clabConnect', nccp.clabConnect.bind(nccp)));
-	context.subscriptions.push(vscode.commands.registerCommand('netconf.clabAddHost', ncsp.clabAddHost.bind(ncsp)));
+	context.subscriptions.push(vscode.commands.registerCommand('netconf.ssh.clabConnect', nccp.clabConnect.bind(nccp)));
+	context.subscriptions.push(vscode.commands.registerCommand('netconf.save.clabAddHost', ncsp.clabAddHost.bind(ncsp)));
 
 	// --- connection commands ----------------------------------------------
 
